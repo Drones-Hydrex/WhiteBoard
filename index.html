@@ -660,29 +660,14 @@
 
 <script>
 // ============================================================
-// MSAL CONFIG — swap in your actual IDs
+// GITHUB STORAGE CONFIG
 // ============================================================
-const MSAL_CONFIG = {
-  auth: {
-    clientId:   'd013643b-e55f-40de-9c6f-b0f42daae3e1',
-    authority:  'https://login.microsoftonline.com/b815bd35-f454-4eec-8c8c-d320e444c582',
-    redirectUri: window.location.origin + window.location.pathname.replace(/\/?$/, '/')
-  },
-  cache: { cacheLocation: 'sessionStorage', storeAuthStateInCookie: false }
-};
-const SCOPES = ['Files.ReadWrite', 'User.Read'];
-
-// SharePoint shared site — everyone reads/writes the same file
-// Site: netorgft8981272.sharepoint.com — update SITE_ID after running the lookup
-// File saves to signed-in user's OneDrive: My files → ProjectTracker → projects.json
-
-// Shared file — everyone reads/writes Brandon's projects.json via sharing link
-let OD_WRITE_URL = ''; // resolved on first load from sharing link metadata
-const OD_CONTENT_URL = 'https://graph.microsoft.com/v1.0/shares/u!aHR0cHM6Ly9uZXRvcmdmdDg5ODEyNzItbXkuc2hhcmVwb2ludC5jb20vOnU6L2cvcGVyc29uYWwvYmxld2lzX2h5ZHJleC1pbmNfY29tL0lRRFB0TE9yQ3QwMlM0TDFiNlIxTE15SkFhanQ1NFB3WEZUY2ZwVGlGMURIYXFFP2U9dmhTV2di/driveItem/content';
-const OD_META_URL    = 'https://graph.microsoft.com/v1.0/shares/u!aHR0cHM6Ly9uZXRvcmdmdDg5ODEyNzItbXkuc2hhcmVwb2ludC5jb20vOnU6L2cvcGVyc29uYWwvYmxld2lzX2h5ZHJleC1pbmNfY29tL0lRRFB0TE9yQ3QwMlM0TDFiNlIxTE15SkFhanQ1NFB3WEZUY2ZwVGlGMURIYXFFP2U9dmhTV2di/driveItem';
-
-// Poll interval (ms) — how often to check for remote changes
-const POLL_MS = 15000;
+const GH_TOKEN  = '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';
+const GH_REPO   = 'drones-hydrex/WhiteBoard';
+const GH_FILE   = 'projects.json';
+const GH_BRANCH = 'main';
+const GH_API    = `https://api.github.com/repos/${GH_REPO}/contents/${GH_FILE}`;
+const POLL_MS   = 15000;
 
 // ============================================================
 // COLUMN CONFIG
@@ -713,40 +698,23 @@ function applyAutoNA(proj) {
 // SEED DATA
 // ============================================================
 const SEED = [
-  {id:1,location:'',client:'JM',name:'Elm Creek',flightDate:'3-31',dueDate:'',sent:'',notes:'',computer:'',billed:'',
-   Flight:{v:'✓',i:'',na:false},Server:{v:'✓',i:'',na:false},DroneDeploy:{v:'',i:'',na:true},Notes:{v:'✓',i:'',na:true},Process:{v:'✓',i:'',na:false},Export:{v:'✓',i:'',na:false},Planimetrics:{v:'',i:'',na:true},Obliques:{v:'',i:'',na:true},Poster:{v:'',i:'',na:true},NAD83:{v:'',i:'',na:true},Deliverables:{v:'',i:'',na:false},Review:{v:'',i:'',na:false}},
-  {id:2,location:'',client:'JM',name:'Coleman Co.',flightDate:'3-31',dueDate:'',sent:'',notes:'',computer:'',billed:'',
-   Flight:{v:'✓',i:'',na:false},Server:{v:'✓',i:'',na:false},DroneDeploy:{v:'',i:'',na:true},Notes:{v:'✓',i:'',na:true},Process:{v:'✓',i:'',na:false},Export:{v:'✓',i:'',na:false},Planimetrics:{v:'',i:'',na:true},Obliques:{v:'',i:'',na:true},Poster:{v:'',i:'',na:true},NAD83:{v:'',i:'',na:true},Deliverables:{v:'',i:'',na:false},Review:{v:'',i:'',na:false}},
-  {id:3,location:'',client:'GP',name:'Toledo',flightDate:'3-7',dueDate:'',sent:'',notes:'Need Final Design for Whole Lf',computer:'',billed:'',
-   Flight:{v:'✓',i:'',na:false},Server:{v:'✓',i:'',na:false},DroneDeploy:{v:'',i:'',na:true},Notes:{v:'',i:'',na:true},Process:{v:'✓',i:'',na:false},Export:{v:'',i:'CE',na:false},Planimetrics:{v:'',i:'',na:true},Obliques:{v:'',i:'',na:true},Poster:{v:'',i:'',na:true},NAD83:{v:'',i:'',na:true},Deliverables:{v:'',i:'',na:false},Review:{v:'',i:'',na:false}},
-  {id:4,location:'',client:'GP',name:'Leaf River',flightDate:'8-??',dueDate:'',sent:'',notes:'',computer:'',billed:'',
-   Flight:{v:'',i:'',na:false},Server:{v:'',i:'',na:false},DroneDeploy:{v:'',i:'',na:true},Notes:{v:'',i:'',na:true},Process:{v:'',i:'',na:false},Export:{v:'',i:'',na:false},Planimetrics:{v:'',i:'',na:true},Obliques:{v:'',i:'',na:true},Poster:{v:'',i:'',na:true},NAD83:{v:'',i:'',na:true},Deliverables:{v:'',i:'',na:false},Review:{v:'',i:'',na:false}},
-  {id:5,location:'NTX',client:'WM',name:'Hillside',flightDate:'3/3',dueDate:'',sent:'',notes:'',computer:'',billed:'KG',
-   Flight:{v:'✓',i:'',na:false},Server:{v:'✓',i:'',na:false},DroneDeploy:{v:'✓',i:'',na:false},Notes:{v:'✓',i:'',na:false},Process:{v:'✓',i:'',na:false},Export:{v:'✓',i:'',na:false},Planimetrics:{v:'✓',i:'',na:false},Obliques:{v:'✓',i:'',na:false},Poster:{v:'✓',i:'',na:false},NAD83:{v:'✓',i:'',na:false},Deliverables:{v:'✓',i:'',na:false},Review:{v:'',i:'',na:false}},
-  {id:6,location:'NTX',client:'WM',name:'Skyline',flightDate:'3/3',dueDate:'',sent:'',notes:'',computer:'',billed:'KG',
-   Flight:{v:'✓',i:'',na:false},Server:{v:'✓',i:'',na:false},DroneDeploy:{v:'✓',i:'',na:false},Notes:{v:'✓',i:'',na:false},Process:{v:'✓',i:'',na:false},Export:{v:'✓',i:'',na:false},Planimetrics:{v:'✓',i:'',na:false},Obliques:{v:'',i:'CE',na:false},Poster:{v:'',i:'',na:false},NAD83:{v:'',i:'',na:false},Deliverables:{v:'',i:'',na:false},Review:{v:'',i:'',na:false}},
-  {id:7,location:'NTX',client:'WM',name:'New Boston',flightDate:'3/3',dueDate:'',sent:'',notes:'',computer:'',billed:'KG',
-   Flight:{v:'✓',i:'',na:false},Server:{v:'✓',i:'',na:false},DroneDeploy:{v:'✓',i:'',na:false},Notes:{v:'✓',i:'',na:false},Process:{v:'✓',i:'',na:false},Export:{v:'',i:'',na:false},Planimetrics:{v:'',i:'CE',na:false},Obliques:{v:'',i:'',na:false},Poster:{v:'',i:'',na:false},NAD83:{v:'',i:'',na:false},Deliverables:{v:'',i:'',na:false},Review:{v:'',i:'',na:false}},
-  {id:8,location:'STX',client:'WM',name:'Fairbanks',flightDate:'2/25',dueDate:'',sent:'',notes:'',computer:'',billed:'1/2 KG',
-   Flight:{v:'✓',i:'',na:false},Server:{v:'✓',i:'',na:false},DroneDeploy:{v:'✓',i:'',na:false},Notes:{v:'✓',i:'',na:false},Process:{v:'✓',i:'',na:false},Export:{v:'',i:'',na:false},Planimetrics:{v:'',i:'',na:false},Obliques:{v:'',i:'',na:false},Poster:{v:'',i:'',na:false},NAD83:{v:'',i:'',na:false},Deliverables:{v:'',i:'',na:false},Review:{v:'',i:'',na:false}},
-  {id:9,location:'STX',client:'WM',name:'Baytown',flightDate:'2/26',dueDate:'',sent:'',notes:'',computer:'',billed:'1/2 KG',
-   Flight:{v:'✓',i:'',na:false},Server:{v:'✓',i:'',na:false},DroneDeploy:{v:'✓',i:'',na:false},Notes:{v:'✓',i:'',na:false},Process:{v:'✓',i:'',na:false},Export:{v:'',i:'',na:false},Planimetrics:{v:'',i:'',na:false},Obliques:{v:'',i:'',na:false},Poster:{v:'',i:'',na:false},NAD83:{v:'',i:'',na:false},Deliverables:{v:'',i:'',na:false},Review:{v:'',i:'',na:false}},
-  {id:10,location:'STX',client:'WM',name:'Coastal Plains',flightDate:'3/26',dueDate:'',sent:'',notes:'',computer:'',billed:'KG',
-   Flight:{v:'✓',i:'',na:false},Server:{v:'✓',i:'',na:false},DroneDeploy:{v:'✓',i:'',na:false},Notes:{v:'',i:'',na:false},Process:{v:'',i:'',na:false},Export:{v:'',i:'',na:false},Planimetrics:{v:'',i:'',na:false},Obliques:{v:'',i:'',na:false},Poster:{v:'',i:'',na:false},NAD83:{v:'',i:'',na:false},Deliverables:{v:'',i:'',na:false},Review:{v:'',i:'',na:false}},
-  {id:11,location:'STX',client:'WM',name:'Security',flightDate:'3/10',dueDate:'',sent:'',notes:'',computer:'',billed:'KG',
-   Flight:{v:'✓',i:'',na:false},Server:{v:'✓',i:'',na:false},DroneDeploy:{v:'✓',i:'',na:false},Notes:{v:'',i:'',na:false},Process:{v:'',i:'',na:false},Export:{v:'',i:'',na:false},Planimetrics:{v:'',i:'',na:false},Obliques:{v:'',i:'',na:false},Poster:{v:'',i:'',na:false},NAD83:{v:'',i:'',na:false},Deliverables:{v:'',i:'',na:false},Review:{v:'',i:'',na:false}},
-  {id:12,location:'STX',client:'WM',name:'Atascacita',flightDate:'3/5',dueDate:'',sent:'',notes:'',computer:'',billed:'KG',
-   Flight:{v:'✓',i:'',na:false},Server:{v:'✓',i:'',na:false},DroneDeploy:{v:'✓',i:'',na:false},Notes:{v:'',i:'',na:false},Process:{v:'',i:'',na:false},Export:{v:'',i:'',na:false},Planimetrics:{v:'',i:'',na:false},Obliques:{v:'',i:'',na:false},Poster:{v:'',i:'',na:false},NAD83:{v:'',i:'',na:false},Deliverables:{v:'',i:'',na:false},Review:{v:'',i:'',na:false}},
-  {id:13,location:'STX',client:'WM',name:'Newton',flightDate:'3/31',dueDate:'',sent:'',notes:'',computer:'',billed:'KG',
-   Flight:{v:'✓',i:'',na:false},Server:{v:'✓',i:'',na:false},DroneDeploy:{v:'✓',i:'',na:false},Notes:{v:'',i:'',na:false},Process:{v:'',i:'',na:false},Export:{v:'',i:'',na:false},Planimetrics:{v:'',i:'',na:false},Obliques:{v:'',i:'',na:false},Poster:{v:'',i:'',na:false},NAD83:{v:'',i:'',na:false},Deliverables:{v:'',i:'',na:false},Review:{v:'',i:'',na:false}},
-  {id:14,location:'STX',client:'WM',name:'Conroe 7',flightDate:'3/12',dueDate:'',sent:'',notes:'',computer:'',billed:'KG',
-   Flight:{v:'✓',i:'',na:false},Server:{v:'✓',i:'',na:false},DroneDeploy:{v:'✓',i:'',na:false},Notes:{v:'',i:'',na:false},Process:{v:'',i:'',na:false},Export:{v:'',i:'',na:false},Planimetrics:{v:'',i:'',na:false},Obliques:{v:'',i:'',na:false},Poster:{v:'',i:'',na:false},NAD83:{v:'',i:'',na:false},Deliverables:{v:'',i:'',na:false},Review:{v:'',i:'',na:false}},
-  {id:15,location:'STX',client:'WM',name:'Greenshadow',flightDate:'3/10',dueDate:'',sent:'',notes:'',computer:'',billed:'KG',
-   Flight:{v:'✓',i:'',na:false},Server:{v:'✓',i:'',na:false},DroneDeploy:{v:'✓',i:'',na:false},Notes:{v:'',i:'',na:false},Process:{v:'',i:'',na:false},Export:{v:'',i:'',na:false},Planimetrics:{v:'',i:'',na:false},Obliques:{v:'',i:'',na:false},Poster:{v:'',i:'',na:false},NAD83:{v:'',i:'',na:false},Deliverables:{v:'',i:'',na:false},Review:{v:'',i:'',na:false}},
-  {id:16,location:'CTX',client:'WM',name:'Mesquite Add-on',flightDate:'3/4',dueDate:'',sent:'',notes:'',computer:'',billed:'KG',
-   Flight:{v:'✓',i:'',na:false},Server:{v:'✓',i:'',na:false},DroneDeploy:{v:'',i:'',na:false},Notes:{v:'',i:'Bojo',na:false},Process:{v:'',i:'',na:false},Export:{v:'',i:'',na:false},Planimetrics:{v:'',i:'',na:false},Obliques:{v:'',i:'',na:false},Poster:{v:'',i:'',na:false},NAD83:{v:'',i:'',na:false},Deliverables:{v:'',i:'',na:false},Review:{v:'',i:'',na:false}},
-  {id:17,location:'',client:'DJ',name:'Gregg Co LiDAR',flightDate:'4/9',dueDate:'',sent:'',notes:'',computer:'',billed:'',
-   Flight:{v:'✓',i:'',na:false},Server:{v:'✓',i:'',na:false},DroneDeploy:{v:'',i:'',na:true},Notes:{v:'',i:'',na:true},Process:{v:'',i:'',na:false},Export:{v:'',i:'',na:false},Planimetrics:{v:'',i:'',na:true},Obliques:{v:'',i:'',na:true},Poster:{v:'',i:'',na:true},NAD83:{v:'',i:'',na:true},Deliverables:{v:'',i:'',na:false},Review:{v:'',i:'',na:false}},
+  {id:1,location:'',client:'JM',name:'Elm Creek',flightDate:'3-31',dueDate:'',sent:'',notes:'',computer:'',billed:'',Flight:{v:'✓',i:'',na:false},Server:{v:'✓',i:'',na:false},DroneDeploy:{v:'',i:'',na:true},Notes:{v:'✓',i:'',na:true},Process:{v:'✓',i:'',na:false},Export:{v:'✓',i:'',na:false},Planimetrics:{v:'',i:'',na:true},Obliques:{v:'',i:'',na:true},Poster:{v:'',i:'',na:true},NAD83:{v:'',i:'',na:true},Deliverables:{v:'',i:'',na:false},Review:{v:'',i:'',na:false}},
+  {id:2,location:'',client:'JM',name:'Coleman Co.',flightDate:'3-31',dueDate:'',sent:'',notes:'',computer:'',billed:'',Flight:{v:'✓',i:'',na:false},Server:{v:'✓',i:'',na:false},DroneDeploy:{v:'',i:'',na:true},Notes:{v:'✓',i:'',na:true},Process:{v:'✓',i:'',na:false},Export:{v:'✓',i:'',na:false},Planimetrics:{v:'',i:'',na:true},Obliques:{v:'',i:'',na:true},Poster:{v:'',i:'',na:true},NAD83:{v:'',i:'',na:true},Deliverables:{v:'',i:'',na:false},Review:{v:'',i:'',na:false}},
+  {id:3,location:'',client:'GP',name:'Toledo',flightDate:'3-7',dueDate:'',sent:'',notes:'Need Final Design for Whole Lf',computer:'',billed:'',Flight:{v:'✓',i:'',na:false},Server:{v:'✓',i:'',na:false},DroneDeploy:{v:'',i:'',na:true},Notes:{v:'',i:'',na:true},Process:{v:'✓',i:'',na:false},Export:{v:'',i:'CE',na:false},Planimetrics:{v:'',i:'',na:true},Obliques:{v:'',i:'',na:true},Poster:{v:'',i:'',na:true},NAD83:{v:'',i:'',na:true},Deliverables:{v:'',i:'',na:false},Review:{v:'',i:'',na:false}},
+  {id:4,location:'',client:'GP',name:'Leaf River',flightDate:'8-??',dueDate:'',sent:'',notes:'',computer:'',billed:'',Flight:{v:'',i:'',na:false},Server:{v:'',i:'',na:false},DroneDeploy:{v:'',i:'',na:true},Notes:{v:'',i:'',na:true},Process:{v:'',i:'',na:false},Export:{v:'',i:'',na:false},Planimetrics:{v:'',i:'',na:true},Obliques:{v:'',i:'',na:true},Poster:{v:'',i:'',na:true},NAD83:{v:'',i:'',na:true},Deliverables:{v:'',i:'',na:false},Review:{v:'',i:'',na:false}},
+  {id:5,location:'NTX',client:'WM',name:'Hillside',flightDate:'3/3',dueDate:'',sent:'',notes:'',computer:'',billed:'KG',Flight:{v:'✓',i:'',na:false},Server:{v:'✓',i:'',na:false},DroneDeploy:{v:'✓',i:'',na:false},Notes:{v:'✓',i:'',na:false},Process:{v:'✓',i:'',na:false},Export:{v:'✓',i:'',na:false},Planimetrics:{v:'✓',i:'',na:false},Obliques:{v:'✓',i:'',na:false},Poster:{v:'✓',i:'',na:false},NAD83:{v:'✓',i:'',na:false},Deliverables:{v:'✓',i:'',na:false},Review:{v:'',i:'',na:false}},
+  {id:6,location:'NTX',client:'WM',name:'Skyline',flightDate:'3/3',dueDate:'',sent:'',notes:'',computer:'',billed:'KG',Flight:{v:'✓',i:'',na:false},Server:{v:'✓',i:'',na:false},DroneDeploy:{v:'✓',i:'',na:false},Notes:{v:'✓',i:'',na:false},Process:{v:'✓',i:'',na:false},Export:{v:'✓',i:'',na:false},Planimetrics:{v:'✓',i:'',na:false},Obliques:{v:'',i:'CE',na:false},Poster:{v:'',i:'',na:false},NAD83:{v:'',i:'',na:false},Deliverables:{v:'',i:'',na:false},Review:{v:'',i:'',na:false}},
+  {id:7,location:'NTX',client:'WM',name:'New Boston',flightDate:'3/3',dueDate:'',sent:'',notes:'',computer:'',billed:'KG',Flight:{v:'✓',i:'',na:false},Server:{v:'✓',i:'',na:false},DroneDeploy:{v:'✓',i:'',na:false},Notes:{v:'✓',i:'',na:false},Process:{v:'✓',i:'',na:false},Export:{v:'',i:'',na:false},Planimetrics:{v:'',i:'CE',na:false},Obliques:{v:'',i:'',na:false},Poster:{v:'',i:'',na:false},NAD83:{v:'',i:'',na:false},Deliverables:{v:'',i:'',na:false},Review:{v:'',i:'',na:false}},
+  {id:8,location:'STX',client:'WM',name:'Fairbanks',flightDate:'2/25',dueDate:'',sent:'',notes:'',computer:'',billed:'1/2 KG',Flight:{v:'✓',i:'',na:false},Server:{v:'✓',i:'',na:false},DroneDeploy:{v:'✓',i:'',na:false},Notes:{v:'✓',i:'',na:false},Process:{v:'✓',i:'',na:false},Export:{v:'',i:'',na:false},Planimetrics:{v:'',i:'',na:false},Obliques:{v:'',i:'',na:false},Poster:{v:'',i:'',na:false},NAD83:{v:'',i:'',na:false},Deliverables:{v:'',i:'',na:false},Review:{v:'',i:'',na:false}},
+  {id:9,location:'STX',client:'WM',name:'Baytown',flightDate:'2/26',dueDate:'',sent:'',notes:'',computer:'',billed:'1/2 KG',Flight:{v:'✓',i:'',na:false},Server:{v:'✓',i:'',na:false},DroneDeploy:{v:'✓',i:'',na:false},Notes:{v:'✓',i:'',na:false},Process:{v:'✓',i:'',na:false},Export:{v:'',i:'',na:false},Planimetrics:{v:'',i:'',na:false},Obliques:{v:'',i:'',na:false},Poster:{v:'',i:'',na:false},NAD83:{v:'',i:'',na:false},Deliverables:{v:'',i:'',na:false},Review:{v:'',i:'',na:false}},
+  {id:10,location:'STX',client:'WM',name:'Coastal Plains',flightDate:'3/26',dueDate:'',sent:'',notes:'',computer:'',billed:'KG',Flight:{v:'✓',i:'',na:false},Server:{v:'✓',i:'',na:false},DroneDeploy:{v:'✓',i:'',na:false},Notes:{v:'',i:'',na:false},Process:{v:'',i:'',na:false},Export:{v:'',i:'',na:false},Planimetrics:{v:'',i:'',na:false},Obliques:{v:'',i:'',na:false},Poster:{v:'',i:'',na:false},NAD83:{v:'',i:'',na:false},Deliverables:{v:'',i:'',na:false},Review:{v:'',i:'',na:false}},
+  {id:11,location:'STX',client:'WM',name:'Security',flightDate:'3/10',dueDate:'',sent:'',notes:'',computer:'',billed:'KG',Flight:{v:'✓',i:'',na:false},Server:{v:'✓',i:'',na:false},DroneDeploy:{v:'✓',i:'',na:false},Notes:{v:'',i:'',na:false},Process:{v:'✓',i:'',na:false},Export:{v:'',i:'',na:false},Planimetrics:{v:'',i:'',na:false},Obliques:{v:'',i:'',na:false},Poster:{v:'',i:'',na:false},NAD83:{v:'',i:'',na:false},Deliverables:{v:'',i:'',na:false},Review:{v:'',i:'',na:false}},
+  {id:12,location:'STX',client:'WM',name:'Atascacita',flightDate:'3/5',dueDate:'',sent:'',notes:'',computer:'',billed:'KG',Flight:{v:'✓',i:'',na:false},Server:{v:'✓',i:'',na:false},DroneDeploy:{v:'✓',i:'',na:false},Notes:{v:'',i:'',na:false},Process:{v:'✓',i:'',na:false},Export:{v:'',i:'',na:false},Planimetrics:{v:'',i:'',na:false},Obliques:{v:'',i:'',na:false},Poster:{v:'',i:'',na:false},NAD83:{v:'',i:'',na:false},Deliverables:{v:'',i:'',na:false},Review:{v:'',i:'',na:false}},
+  {id:13,location:'STX',client:'WM',name:'Newton',flightDate:'3/31',dueDate:'',sent:'',notes:'',computer:'',billed:'KG',Flight:{v:'✓',i:'',na:false},Server:{v:'✓',i:'',na:false},DroneDeploy:{v:'✓',i:'',na:false},Notes:{v:'',i:'',na:false},Process:{v:'✓',i:'',na:false},Export:{v:'',i:'',na:false},Planimetrics:{v:'',i:'',na:false},Obliques:{v:'',i:'',na:false},Poster:{v:'',i:'',na:false},NAD83:{v:'',i:'',na:false},Deliverables:{v:'',i:'',na:false},Review:{v:'',i:'',na:false}},
+  {id:14,location:'STX',client:'WM',name:'Conroe 7',flightDate:'3/12',dueDate:'',sent:'',notes:'',computer:'',billed:'KG',Flight:{v:'✓',i:'',na:false},Server:{v:'✓',i:'',na:false},DroneDeploy:{v:'✓',i:'',na:false},Notes:{v:'',i:'',na:false},Process:{v:'✓',i:'',na:false},Export:{v:'',i:'',na:false},Planimetrics:{v:'',i:'',na:false},Obliques:{v:'',i:'',na:false},Poster:{v:'',i:'',na:false},NAD83:{v:'',i:'',na:false},Deliverables:{v:'',i:'',na:false},Review:{v:'',i:'',na:false}},
+  {id:15,location:'STX',client:'WM',name:'Greenshadow',flightDate:'3/10',dueDate:'',sent:'',notes:'',computer:'',billed:'KG',Flight:{v:'✓',i:'',na:false},Server:{v:'✓',i:'',na:false},DroneDeploy:{v:'✓',i:'',na:false},Notes:{v:'',i:'',na:false},Process:{v:'✓',i:'',na:false},Export:{v:'',i:'',na:false},Planimetrics:{v:'',i:'',na:false},Obliques:{v:'',i:'',na:false},Poster:{v:'',i:'',na:false},NAD83:{v:'',i:'',na:false},Deliverables:{v:'',i:'',na:false},Review:{v:'',i:'',na:false}},
+  {id:16,location:'CTX',client:'WM',name:'Mesquite Add-on',flightDate:'3/4',dueDate:'',sent:'',notes:'',computer:'',billed:'KG',Flight:{v:'✓',i:'',na:false},Server:{v:'✓',i:'',na:false},DroneDeploy:{v:'',i:'',na:false},Notes:{v:'',i:'Bojo',na:false},Process:{v:'',i:'',na:false},Export:{v:'',i:'',na:false},Planimetrics:{v:'',i:'',na:false},Obliques:{v:'',i:'',na:false},Poster:{v:'',i:'',na:false},NAD83:{v:'',i:'',na:false},Deliverables:{v:'',i:'',na:false},Review:{v:'',i:'',na:false}},
+  {id:17,location:'',client:'DJ',name:'Gregg Co LiDAR',flightDate:'4/9',dueDate:'',sent:'',notes:'',computer:'',billed:'',Flight:{v:'✓',i:'',na:false},Server:{v:'✓',i:'',na:false},DroneDeploy:{v:'',i:'',na:true},Notes:{v:'',i:'',na:true},Process:{v:'',i:'',na:false},Export:{v:'',i:'',na:false},Planimetrics:{v:'',i:'',na:true},Obliques:{v:'',i:'',na:true},Poster:{v:'',i:'',na:true},NAD83:{v:'',i:'',na:true},Deliverables:{v:'',i:'',na:false},Review:{v:'',i:'',na:false}},
 ];
 
 // ============================================================
@@ -758,210 +726,93 @@ let billedProjId=null;
 let dragSrcId=null;
 let changeLog=[];
 let logVisible=false;
-let msalInstance=null;
-let currentAccount=null;
 let pollTimer=null;
-let lastEtag='';
+let lastSha='';
 let isSaving=false;
+let currentUser='Team';
 
 // ============================================================
-// MSAL INIT
+// GITHUB STORAGE
 // ============================================================
-async function initAuth() {
-  msalInstance = new msal.PublicClientApplication(MSAL_CONFIG);
-  await msalInstance.initialize();
-
-  // Handle redirect response
-  try {
-    const resp = await msalInstance.handleRedirectPromise();
-    if (resp && resp.account) {
-      currentAccount = resp.account;
-    }
-  } catch(e) { console.error('Redirect error', e); }
-
-  // Check for existing session
-  const accounts = msalInstance.getAllAccounts();
-  if (accounts.length > 0) {
-    currentAccount = accounts[0];
-  }
-
-  if (currentAccount) {
-    showApp();
-    await loadFromOneDrive();
-    startPolling();
-  } else {
-    showSignIn();
-  }
-}
-
-function showSignIn() {
-  document.getElementById('signin-screen').style.display = 'flex';
-  document.getElementById('app').style.display = 'none';
-  document.getElementById('auth-state-text').textContent = 'Not signed in';
-  document.getElementById('auth-btn').style.display = 'none';
-  setSyncStatus('', '—');
-}
-
-function showApp() {
-  document.getElementById('signin-screen').style.display = 'none';
-  document.getElementById('app').style.display = 'block';
-  const name = currentAccount.name || currentAccount.username;
-  document.getElementById('auth-state-text').innerHTML =
-    `<span class="user-name">${name}</span> &nbsp;<span class="user-info">(${currentAccount.username})</span>`;
-  document.getElementById('auth-btn').style.display = 'inline-block';
-}
-
-async function signIn() {
-  if (!msalInstance) {
-    alert('Auth is still loading, please wait a moment and try again.');
-    return;
-  }
-  try {
-    await msalInstance.loginRedirect({ scopes: SCOPES });
-  } catch(e) { console.error('Sign in error', e); }
-}
-
-async function signOut() {
-  stopPolling();
-  await msalInstance.logoutRedirect({ account: currentAccount });
-}
-
-async function getToken() {
-  try {
-    const resp = await msalInstance.acquireTokenSilent({ scopes: SCOPES, account: currentAccount });
-    return resp.accessToken;
-  } catch(e) {
-    const resp = await msalInstance.acquireTokenRedirect({ scopes: SCOPES });
-    return null;
-  }
-}
-
-// ============================================================
-// SYNC STATUS
-// ============================================================
-function setSyncStatus(state, label) {
-  const dot = document.getElementById('sync-dot');
-  const lbl = document.getElementById('sync-label');
-  dot.className = 'sync-dot' + (state ? ' '+state : '');
-  lbl.textContent = label;
-}
-
-// ============================================================
-// ONEDRIVE READ / WRITE
-// ============================================================
-async function loadFromOneDrive() {
+async function loadFromGitHub() {
   setSyncStatus('syncing', 'Loading…');
   try {
-    const token = await getToken();
-    if (!token) return;
-
-    // Resolve direct write URL once from sharing link metadata
-    if (!OD_WRITE_URL) {
-      try {
-        const metaRes = await fetch(OD_META_URL, { headers: { Authorization: `Bearer ${token}` } });
-        if (metaRes.ok) {
-          const meta = await metaRes.json();
-          const driveId = meta.parentReference ? meta.parentReference.driveId : null;
-          const itemId  = meta.id;
-          if (driveId && itemId) {
-            OD_WRITE_URL = 'https://graph.microsoft.com/v1.0/drives/' + driveId + '/items/' + itemId + '/content';
-          }
-        }
-      } catch(e) { console.warn('Could not resolve write URL', e); }
-    }
-
-    const url = OD_CONTENT_URL;
-    const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-
+    const res = await fetch(GH_API + '?ref=' + GH_BRANCH + '&t=' + Date.now(), {
+      headers: { Authorization: 'token ' + GH_TOKEN, Accept: 'application/vnd.github.v3+json' }
+    });
     if (res.status === 404) {
-      // First time — seed and save
-      projects = JSON.parse(JSON.stringify(SEED));
-      nextId = 100;
-      changeLog = [];
-      await saveToOneDrive();
-      renderTable();
-      return;
+      projects=JSON.parse(JSON.stringify(SEED)); nextId=100; changeLog=[];
+      await saveToGitHub('Initial seed'); renderTable(); return;
     }
-
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-    lastEtag = res.headers.get('ETag') || '';
+    if (!res.ok) throw new Error('HTTP ' + res.status);
     const data = await res.json();
-    projects  = data.projects  || JSON.parse(JSON.stringify(SEED));
-    nextId    = data.nextId    || 100;
-    changeLog = data.changeLog || [];
-
+    lastSha = data.sha;
+    const decoded = JSON.parse(atob(data.content.replace(/\n/g,'')));
+    projects  = decoded.projects  || JSON.parse(JSON.stringify(SEED));
+    nextId    = decoded.nextId    || 100;
+    changeLog = decoded.changeLog || [];
     renderTable();
     setSyncStatus('synced', 'Up to date');
     updateLastSaved();
   } catch(e) {
     console.error('Load error', e);
     setSyncStatus('error', 'Load failed');
-    // Fall back to seed so the UI isn't empty
-    if (!projects.length) { projects = JSON.parse(JSON.stringify(SEED)); renderTable(); }
+    if (!projects.length) { projects=JSON.parse(JSON.stringify(SEED)); renderTable(); }
   }
 }
 
-async function saveToOneDrive() {
+async function saveToGitHub(commitMsg) {
   if (isSaving) return;
   isSaving = true;
   setSyncStatus('syncing', 'Saving…');
   try {
-    const token = await getToken();
-    if (!token) { isSaving=false; return; }
-
     const payload = JSON.stringify({ projects, nextId, changeLog });
-    const url = OD_WRITE_URL || OD_CONTENT_URL;
-    const res = await fetch(url, {
+    const encoded = btoa(unescape(encodeURIComponent(payload)));
+    const body = { message: commitMsg || ('Update by ' + currentUser), content: encoded, branch: GH_BRANCH };
+    if (lastSha) body.sha = lastSha;
+    const res = await fetch(GH_API, {
       method: 'PUT',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
-      body: payload
+      headers: { Authorization: 'token ' + GH_TOKEN, Accept: 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
     });
-
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const json = await res.json();
-    lastEtag = json.eTag || '';
+    if (!res.ok) {
+      const err = await res.json().catch(()=>({}));
+      throw new Error(err.message || ('HTTP ' + res.status));
+    }
+    const result = await res.json();
+    lastSha = result.content.sha;
     setSyncStatus('synced', 'Saved ✓');
     updateLastSaved();
     showToast('Saved ✓');
   } catch(e) {
     console.error('Save error', e);
-    setSyncStatus('error', 'Save failed — retrying…');
-    setTimeout(saveToOneDrive, 4000);
-  } finally {
-    isSaving = false;
-  }
-}
-
-// Poll for remote changes — only re-render if ETag changed
-async function pollOneDrive() {
-  try {
-    const token = await getToken();
-    if (!token) return;
-
-    const url = OD_META_URL;
-    const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-    if (!res.ok) return;
-
-    const meta = await res.json();
-    const remoteEtag = meta.eTag || meta.cTag || '';
-    if (remoteEtag && remoteEtag !== lastEtag) {
-      lastEtag = remoteEtag;
-      await loadFromOneDrive();
+    setSyncStatus('error', 'Save failed');
+    if (e.message && e.message.toLowerCase().includes('conflict')) {
+      setTimeout(async ()=>{ await loadFromGitHub(); await saveToGitHub(commitMsg); }, 2000);
     }
-  } catch(e) { /* silent — next poll will retry */ }
+  } finally { isSaving = false; }
 }
 
-function startPolling() {
-  stopPolling();
-  pollTimer = setInterval(pollOneDrive, POLL_MS);
+async function pollGitHub() {
+  try {
+    const res = await fetch(GH_API + '?ref=' + GH_BRANCH + '&t=' + Date.now(), {
+      headers: { Authorization: 'token ' + GH_TOKEN, Accept: 'application/vnd.github.v3+json' }
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data.sha && data.sha !== lastSha) { await loadFromGitHub(); }
+  } catch(e) {}
 }
 
-function stopPolling() {
-  if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+function startPolling() { stopPolling(); pollTimer = setInterval(pollGitHub, POLL_MS); }
+function stopPolling()  { if (pollTimer) { clearInterval(pollTimer); pollTimer = null; } }
+function persist()      { saveToGitHub(); }
+
+function setSyncStatus(state, label) {
+  const dot = document.getElementById('sync-dot');
+  const lbl = document.getElementById('sync-label');
+  dot.className = 'sync-dot' + (state ? ' '+state : '');
+  lbl.textContent = label;
 }
 
 function updateLastSaved() {
@@ -971,228 +822,24 @@ function updateLastSaved() {
 }
 
 // ============================================================
-// PERSIST (now writes to OneDrive)
+// BOOT
 // ============================================================
-function persist() { saveToOneDrive(); }
-
-function showToast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg; t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'), 1800);
-}
-
-// ============================================================
-// CHANGE LOG
-// ============================================================
-function logChange(projName, colLabel, oldVal, newVal) {
-  const now = new Date();
-  const ts = now.toLocaleDateString('en-US',{month:'2-digit',day:'2-digit',year:'2-digit'})
-           + ' ' + now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
-  const user = currentAccount ? (currentAccount.name || currentAccount.username) : '?';
-  changeLog.unshift({ ts, proj: projName, col: colLabel, from: oldVal, to: newVal, user });
-  if (changeLog.length > 200) changeLog = changeLog.slice(0,200);
-}
-
-function renderLog() {
-  const body  = document.getElementById('changelog-body');
-  const empty = document.getElementById('changelog-empty');
-  if (!changeLog.length) { empty.style.display=''; return; }
-  empty.style.display = 'none';
-  Array.from(body.querySelectorAll('.log-entry')).forEach(e=>e.remove());
-  changeLog.forEach(entry => {
-    const div = document.createElement('div');
-    div.className = 'log-entry';
-    div.innerHTML = `<span class="log-ts">${entry.ts}</span>
-      <span class="log-proj">${entry.proj}</span>
-      <span class="log-col">${entry.col}${entry.user?' ['+entry.user+']':''}</span>
-      <span class="log-change">${entry.from||'·'} → ${entry.to||'·'}</span>`;
-    body.appendChild(div);
-  });
-}
-
-function toggleLog() {
-  logVisible = !logVisible;
-  document.getElementById('changelog-body').style.display = logVisible ? '' : 'none';
-  document.getElementById('log-toggle').textContent = logVisible ? '▲ hide' : '▼ show';
-  if (logVisible) renderLog();
-}
-
-function clearLog() {
-  if (!confirm('Clear all change log entries?')) return;
-  changeLog = [];
-  persist();
-  renderLog();
-}
-
-// ============================================================
-// DUE DATE HELPERS
-// ============================================================
-function parseFlightDate(str) {
-  if (!str) return null;
-  const m = str.match(/^(\d{1,2})[-\/](\d{1,2})/);
-  if (!m) return null;
-  const now = new Date();
-  return new Date(now.getFullYear(), parseInt(m[1])-1, parseInt(m[2]));
-}
-
-function getEffectiveDueDate(p) {
-  if (p.dueDate) { const d=parseFlightDate(p.dueDate); if(d) return d; }
-  const fd = parseFlightDate(p.flightDate);
-  if (fd) { fd.setDate(fd.getDate()+14); return fd; }
-  return null;
-}
-
-function formatDueDate(p) {
-  if (p.dueDate) return p.dueDate;
-  const fd = parseFlightDate(p.flightDate);
-  if (!fd) return '';
-  fd.setDate(fd.getDate()+14);
-  return (fd.getMonth()+1)+'/'+fd.getDate();
-}
-
-function dueDateClass(p) {
-  const due = getEffectiveDueDate(p);
-  if (!due) return '';
-  const today = new Date(); today.setHours(0,0,0,0);
-  due.setHours(0,0,0,0);
-  const diff = Math.round((due-today)/86400000);
-  if (diff < 0) return 'due-overdue';
-  if (diff <= 2) return 'due-soon';
-  return '';
-}
-
-// ============================================================
-// CELL HELPERS
-// ============================================================
-function getEntry(p, col) {
-  const e = p[col];
-  return (e && typeof e==='object') ? e : {v:'',i:'',na:false};
-}
-
-function cycleStatus(pid, col) {
-  const proj = projects.find(p=>p.id===pid); if(!proj) return;
-  const e = getEntry(proj, col);
-  const colLabel = SLABELS[SCOLS.indexOf(col)] || col;
-  const oldDesc = describeEntry(e);
-  let next;
-  if (e.na)       next = {v:'', i:e.i, na:false};
-  else if (!e.v)  next = {v:'✓', i:e.i, na:false};
-  else            next = {v:'', i:e.i, na:true};
-  proj[col] = next;
-  logChange(proj.name, colLabel, oldDesc, describeEntry(next));
-  persist(); renderTable();
-}
-
-function describeEntry(e) {
-  if (e.na) return 'N/A';
-  if (e.v==='✓') return e.i ? `✓ (${e.i})` : '✓';
-  return e.i ? e.i : '·';
-}
-
-function cellHTML(pid, col) {
-  const p = projects.find(x=>x.id===pid);
-  const e = getEntry(p, col);
-  if (e.na) {
-    return `<div class="na-x" onclick="cycleStatus(${pid},'${col}')" oncontextmenu="openInitPop(event,${pid},'${col}');return false;">
-      <svg width="28" height="22" viewBox="0 0 28 22">
-        <line x1="3" y1="3" x2="25" y2="19" stroke="#1a1a1a" stroke-width="2" stroke-linecap="round"/>
-        <line x1="25" y1="3" x2="3" y2="19" stroke="#1a1a1a" stroke-width="2" stroke-linecap="round"/>
-      </svg>
-    </div>`;
+function initApp() {
+  const stored = sessionStorage.getItem('wb_user');
+  if (stored) {
+    currentUser = stored;
+  } else {
+    const name = prompt('Enter your name or initials:', '');
+    currentUser = (name && name.trim()) ? name.trim() : 'Team';
+    sessionStorage.setItem('wb_user', currentUser);
   }
-  let sym='·', cls='s-empty';
-  if (e.v==='✓') { sym='✓'; cls='s-check'; }
-  const showInitProminently = !e.v && e.i;
-  const topContent = showInitProminently
-    ? `<span class="status-symbol s-init">${e.i}</span>`
-    : `<span class="status-symbol ${cls}">${sym}</span>`;
-  const bottomInitials = (e.v && e.i)
-    ? `<span class="status-initials">${e.i}</span>`
-    : `<span class="status-initials"></span>`;
-  return `<div class="status-cell" onclick="cycleStatus(${pid},'${col}')" oncontextmenu="openInitPop(event,${pid},'${col}');return false;">
-    ${topContent}${bottomInitials}
-  </div>`;
+  document.getElementById('auth-state-text').innerHTML = `<span class="user-name">${currentUser}</span>`;
+  document.getElementById('auth-btn').style.display = 'none';
+  document.getElementById('signin-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  loadFromGitHub();
+  startPolling();
 }
-
-function billedCellHTML(pid) {
-  const p = projects.find(x=>x.id===pid);
-  const b = p.billed||'';
-  if (b) return `<span class="billed-display" onclick="openBilledPop(event,${pid})">${b}</span>`;
-  return `<span class="billed-display empty" onclick="openBilledPop(event,${pid})">·</span>`;
-}
-
-// ============================================================
-// POPOVERS
-// ============================================================
-function openInitPop(evt, pid, col) {
-  evt.preventDefault(); evt.stopPropagation();
-  closeBilledPop();
-  const proj = projects.find(p=>p.id===pid); if(!proj) return;
-  const e = getEntry(proj, col);
-  initPopProjId=pid; initPopCol=col;
-  document.getElementById('init-pop-header').textContent=(SLABELS[SCOLS.indexOf(col)]||col)+' — Initials';
-  document.getElementById('init-pop-input').value=e.i||'';
-  const pop=document.getElementById('init-pop');
-  pop.classList.add('open');
-  positionEl(pop, evt.clientX, evt.clientY);
-  setTimeout(()=>document.getElementById('init-pop-input').focus(),40);
-}
-
-function applyInitPop() {
-  if (!initPopProjId||!initPopCol) return;
-  const proj=projects.find(p=>p.id===initPopProjId); if(!proj) return;
-  const e=getEntry(proj,initPopCol);
-  const newI=document.getElementById('init-pop-input').value.trim().toUpperCase();
-  const colLabel=SLABELS[SCOLS.indexOf(initPopCol)]||initPopCol;
-  if (newI!==e.i) logChange(proj.name, colLabel+' initials', e.i||'·', newI||'·');
-  proj[initPopCol]={...e,i:newI};
-  closeInitPop(); persist(); renderTable();
-}
-
-function closeInitPop() {
-  document.getElementById('init-pop').classList.remove('open');
-  initPopProjId=null; initPopCol=null;
-}
-
-function openBilledPop(evt, pid) {
-  evt.stopPropagation();
-  closeInitPop();
-  billedProjId=pid;
-  const proj=projects.find(p=>p.id===pid);
-  const cur=(proj&&proj.billed)||'';
-  document.querySelectorAll('.billed-opt').forEach(b=>b.classList.toggle('active',b.dataset.val===cur));
-  const pop=document.getElementById('billed-pop');
-  pop.classList.add('open');
-  positionEl(pop,evt.clientX,evt.clientY);
-}
-
-function setBilled(val) {
-  const proj=projects.find(p=>p.id===billedProjId); if(!proj) return;
-  if (proj.billed!==val) logChange(proj.name,'Billed',proj.billed||'·',val||'·');
-  proj.billed=val;
-  closeBilledPop(); persist(); renderTable();
-}
-
-function closeBilledPop() {
-  document.getElementById('billed-pop').classList.remove('open');
-  billedProjId=null;
-}
-
-function positionEl(el,cx,cy) {
-  const w=el.offsetWidth||180, h=el.offsetHeight||120;
-  el.style.left=Math.min(cx,window.innerWidth-w-8)+'px';
-  el.style.top=Math.min(cy+10,window.innerHeight-h-8)+'px';
-}
-
-document.addEventListener('keydown',e=>{
-  if(e.key==='Escape'){closeInitPop();closeBilledPop();}
-});
-document.addEventListener('click',e=>{
-  if(document.getElementById('init-pop').classList.contains('open')&&
-     !document.getElementById('init-pop').contains(e.target)) closeInitPop();
-  if(document.getElementById('billed-pop').classList.contains('open')&&
-     !document.getElementById('billed-pop').contains(e.target)) closeBilledPop();
-});
 
 // ============================================================
 // DRAG & DROP
@@ -1395,6 +1042,8 @@ function downloadCSV(content,filename) {
 // BOOT
 // ============================================================
 initAuth();
+
+initApp();
 </script>
 </body>
 </html>
