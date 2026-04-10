@@ -670,7 +670,7 @@ const MSAL_CONFIG = {
   },
   cache: { cacheLocation: 'sessionStorage', storeAuthStateInCookie: false }
 };
-const SCOPES = ['Files.ReadWrite'];
+const SCOPES = ['Files.ReadWrite.All'];
 
 // OneDrive folder and filename
 const OD_FOLDER   = 'ProjectTracker';
@@ -850,7 +850,7 @@ async function loadFromOneDrive() {
     const token = await getToken();
     if (!token) return;
 
-    const url = `https://graph.microsoft.com/v1.0/me/drive/root:/${OD_FOLDER}/${OD_FILENAME}:/content`;
+    const url = `https://graph.microsoft.com/v1.0/users/blewis@hydrex-inc.com/drive/root:/Documents/Drone%20Division/ProjectTracker/projects.json:/content`;
     const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
 
     if (res.status === 404) {
@@ -891,7 +891,7 @@ async function saveToOneDrive() {
     if (!token) { isSaving=false; return; }
 
     const payload = JSON.stringify({ projects, nextId, changeLog });
-    const url = `https://graph.microsoft.com/v1.0/me/drive/root:/${OD_FOLDER}/${OD_FILENAME}:/content`;
+    const url = `https://graph.microsoft.com/v1.0/users/blewis@hydrex-inc.com/drive/root:/Documents/Drone%20Division/ProjectTracker/projects.json:/content`;
     const res = await fetch(url, {
       method: 'PUT',
       headers: {
