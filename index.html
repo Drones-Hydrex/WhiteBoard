@@ -677,6 +677,7 @@ const SCOPES = ['Files.ReadWrite', 'User.Read'];
 // File saves to signed-in user's OneDrive: My files → ProjectTracker → projects.json
 
 // Shared file — everyone reads/writes Brandon's projects.json via sharing link
+let OD_WRITE_URL = ''; // resolved on first load from sharing link metadata
 const OD_CONTENT_URL = 'https://graph.microsoft.com/v1.0/shares/u!aHR0cHM6Ly9uZXRvcmdmdDg5ODEyNzItbXkuc2hhcmVwb2ludC5jb20vOnU6L2cvcGVyc29uYWwvYmxld2lzX2h5ZHJleC1pbmNfY29tL0lRRFB0TE9yQ3QwMlM0TDFiNlIxTE15SkFhanQ1NFB3WEZUY2ZwVGlGMURIYXFFP2U9dmhTV2di/driveItem/content';
 const OD_META_URL    = 'https://graph.microsoft.com/v1.0/shares/u!aHR0cHM6Ly9uZXRvcmdmdDg5ODEyNzItbXkuc2hhcmVwb2ludC5jb20vOnU6L2cvcGVyc29uYWwvYmxld2lzX2h5ZHJleC1pbmNfY29tL0lRRFB0TE9yQ3QwMlM0TDFiNlIxTE15SkFhanQ1NFB3WEZUY2ZwVGlGMURIYXFFP2U9dmhTV2di/driveItem';
 
@@ -854,6 +855,21 @@ async function loadFromOneDrive() {
     const token = await getToken();
     if (!token) return;
 
+    // Resolve direct write URL once from sharing link metadata
+    if (!OD_WRITE_URL) {
+      try {
+        const metaRes = await fetch(OD_META_URL, { headers: { Authorization: `Bearer ${token}` } });
+        if (metaRes.ok) {
+          const meta = await metaRes.json();
+          const driveId = meta.parentReference ? meta.parentReference.driveId : null;
+          const itemId  = meta.id;
+          if (driveId && itemId) {
+            OD_WRITE_URL = 'https://graph.microsoft.com/v1.0/drives/' + driveId + '/items/' + itemId + '/content';
+          }
+        }
+      } catch(e) { console.warn('Could not resolve write URL', e); }
+    }
+
     const url = OD_CONTENT_URL;
     const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
 
@@ -895,7 +911,7 @@ async function saveToOneDrive() {
     if (!token) { isSaving=false; return; }
 
     const payload = JSON.stringify({ projects, nextId, changeLog });
-    const url = OD_CONTENT_URL;
+    const url = OD_WRITE_URL || OD_CONTENT_URL;
     const res = await fetch(url, {
       method: 'PUT',
       headers: {
