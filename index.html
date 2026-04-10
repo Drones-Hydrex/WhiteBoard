@@ -763,33 +763,21 @@ let isSaving=false;
 // MSAL INIT
 // ============================================================
 async function initAuth() {
-  try {
-    msalInstance = new msal.PublicClientApplication(MSAL_CONFIG);
-    await msalInstance.initialize();
-  } catch(e) {
-    console.error('MSAL init error', e);
-    document.getElementById('auth-state-text').textContent = 'Auth init failed — check console';
-    showSignIn();
-    return;
-  }
+  msalInstance = new msal.PublicClientApplication(MSAL_CONFIG);
+  await msalInstance.initialize();
 
-  // Handle redirect response (fires after loginRedirect completes)
+  // Handle redirect response
   try {
     const resp = await msalInstance.handleRedirectPromise();
     if (resp && resp.account) {
       currentAccount = resp.account;
     }
-  } catch(e) {
-    console.error('Redirect error', e);
-    // Don't return — fall through to check existing accounts
-  }
+  } catch(e) { console.error('Redirect error', e); }
 
-  // Check for existing cached session
-  if (!currentAccount) {
-    const accounts = msalInstance.getAllAccounts();
-    if (accounts.length > 0) {
-      currentAccount = accounts[0];
-    }
+  // Check for existing session
+  const accounts = msalInstance.getAllAccounts();
+  if (accounts.length > 0) {
+    currentAccount = accounts[0];
   }
 
   if (currentAccount) {
@@ -819,6 +807,10 @@ function showApp() {
 }
 
 async function signIn() {
+  if (!msalInstance) {
+    alert('Auth is still loading, please wait a moment and try again.');
+    return;
+  }
   try {
     await msalInstance.loginRedirect({ scopes: SCOPES });
   } catch(e) { console.error('Sign in error', e); }
