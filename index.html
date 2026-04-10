@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -674,17 +675,9 @@ const SCOPES = ['Files.ReadWrite', 'User.Read'];
 
 // SharePoint shared site — everyone reads/writes the same file
 // Site: netorgft8981272.sharepoint.com — update SITE_ID after running the lookup
-const SHAREPOINT_HOST = 'netorgft8981272.sharepoint.com';
-const SITE_PATH = '/sites/DroneDivision'; // update if your Teams/SharePoint site path differs
-const FILE_PATH = 'ProjectTracker/projects.json';
+// File saves to signed-in user's OneDrive: My files → ProjectTracker → projects.json
 
-// Fallback: use owner's personal OneDrive until SharePoint site ID is known
-const OWNER_UPN = 'blewis@hydrex-inc.com';
-const SHARED_FILE_URL = `https://graph.microsoft.com/v1.0/users/${OWNER_UPN}/drive/root:/Documents/Drone Division/${FILE_PATH}:/content`;
-
-// OneDrive folder and filename
-const OD_FOLDER   = 'ProjectTracker';
-const OD_FILENAME = 'projects.json';
+const OD_URL = 'https://graph.microsoft.com/v1.0/me/drive/root:/Drone Division/ProjectTracker/projects.json';
 
 // Poll interval (ms) — how often to check for remote changes
 const POLL_MS = 15000;
@@ -860,7 +853,7 @@ async function loadFromOneDrive() {
     const token = await getToken();
     if (!token) return;
 
-    const url = `https://graph.microsoft.com/v1.0/me/drive/root:/Documents/Drone Division/ProjectTracker/projects.json:/content`;
+    const url = OD_URL + ':/content';
     const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
 
     if (res.status === 404) {
@@ -901,7 +894,7 @@ async function saveToOneDrive() {
     if (!token) { isSaving=false; return; }
 
     const payload = JSON.stringify({ projects, nextId, changeLog });
-    const url = `https://graph.microsoft.com/v1.0/me/drive/root:/Documents/Drone Division/ProjectTracker/projects.json:/content`;
+    const url = OD_URL + ':/content';
     const res = await fetch(url, {
       method: 'PUT',
       headers: {
@@ -932,7 +925,7 @@ async function pollOneDrive() {
     const token = await getToken();
     if (!token) return;
 
-    const url = `https://graph.microsoft.com/v1.0/me/drive/root:/${OD_FOLDER}/${OD_FILENAME}`;
+    const url = OD_URL;
     const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
     if (!res.ok) return;
 
