@@ -666,7 +666,7 @@ const MSAL_CONFIG = {
   auth: {
     clientId:   'd013643b-e55f-40de-9c6f-b0f42daae3e1',
     authority:  'https://login.microsoftonline.com/b815bd35-f454-4eec-8c8c-d320e444c582',
-    redirectUri: 'https://drones-hydrex.github.io/WhiteBoard'
+    redirectUri: window.location.origin + window.location.pathname.replace(/\/?$/, '/')
   },
   cache: { cacheLocation: 'sessionStorage', storeAuthStateInCookie: false }
 };
@@ -763,21 +763,33 @@ let isSaving=false;
 // MSAL INIT
 // ============================================================
 async function initAuth() {
-  msalInstance = new msal.PublicClientApplication(MSAL_CONFIG);
-  await msalInstance.initialize();
+  try {
+    msalInstance = new msal.PublicClientApplication(MSAL_CONFIG);
+    await msalInstance.initialize();
+  } catch(e) {
+    console.error('MSAL init error', e);
+    document.getElementById('auth-state-text').textContent = 'Auth init failed — check console';
+    showSignIn();
+    return;
+  }
 
-  // Handle redirect response
+  // Handle redirect response (fires after loginRedirect completes)
   try {
     const resp = await msalInstance.handleRedirectPromise();
     if (resp && resp.account) {
       currentAccount = resp.account;
     }
-  } catch(e) { console.error('Redirect error', e); }
+  } catch(e) {
+    console.error('Redirect error', e);
+    // Don't return — fall through to check existing accounts
+  }
 
-  // Check for existing session
-  const accounts = msalInstance.getAllAccounts();
-  if (accounts.length > 0) {
-    currentAccount = accounts[0];
+  // Check for existing cached session
+  if (!currentAccount) {
+    const accounts = msalInstance.getAllAccounts();
+    if (accounts.length > 0) {
+      currentAccount = accounts[0];
+    }
   }
 
   if (currentAccount) {
