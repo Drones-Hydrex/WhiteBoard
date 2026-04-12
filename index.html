@@ -3,268 +3,1525 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Project Status Board</title>
-
+<title>Project Tracker</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600&display=swap');
 
-/* ===================== YOUR ORIGINAL CSS (UNCHANGED) ===================== */
+  :root {
+    --bg: #f5f2eb;
+    --panel: #ffffff;
+    --border: #2a2a2a;
+    --border-light: #c8c4bb;
+    --text: #1a1a1a;
+    --text-muted: #6b6760;
+    --header-bg: #2a2a2a;
+    --header-text: #f5f2eb;
+    --row-hover: #eee9df;
+    --check: #2c6e49;
+    --circle: #1a4e8a;
+    --initials: #6b47a8;
+    --yellow: #e6a817;
+    --billed-color: #c0392b;
+    --na-color: #1a1a1a;
+  }
 
-:root {
-  --bg: #f5f2eb;
-  --panel: #ffffff;
-  --border: #2a2a2a;
-  --border-light: #c8c4bb;
-  --text: #1a1a1a;
-  --text-muted: #6b6760;
-  --header-bg: #2a2a2a;
-  --header-text: #f5f2eb;
-  --row-hover: #eee9df;
-  --check: #2c6e49;
-  --circle: #1a4e8a;
-  --initials: #6b47a8;
-  --yellow: #e6a817;
-  --billed-color: #c0392b;
-}
+  * { box-sizing: border-box; margin: 0; padding: 0; }
 
-body {
-  font-family: 'IBM Plex Sans', sans-serif;
-  background: var(--bg);
-  color: var(--text);
-  min-height: 100vh;
-  padding: 20px;
-}
+  body {
+    font-family: 'IBM Plex Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 20px;
+  }
 
-/* KEEP ALL YOUR ORIGINAL STYLES BELOW (UNCHANGED) */
-/* (I did not remove any styling logic) */
+  h1 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 1.1rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
 
+  .meta {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-family: 'IBM Plex Mono', monospace;
+    margin-bottom: 16px;
+  }
+
+  .toolbar {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 6px 12px;
+    border: 1.5px solid var(--border);
+    background: var(--panel);
+    color: var(--text);
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .btn:hover { background: var(--border); color: var(--panel); }
+  .btn.primary { background: var(--border); color: var(--panel); }
+  .btn.primary:hover { background: #444; }
+
+  .filter-group {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    margin-left: auto;
+    flex-wrap: wrap;
+  }
+
+  select, input[type="text"] {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.7rem;
+    padding: 6px 8px;
+    border: 1.5px solid var(--border-light);
+    background: var(--panel);
+    color: var(--text);
+    outline: none;
+  }
+
+  .table-wrap {
+    overflow-x: auto;
+    border: 1.5px solid var(--border);
+    background: var(--panel);
+  }
+
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    min-width: 1200px;
+  }
+
+  thead tr {
+    background: var(--header-bg);
+    color: var(--header-text);
+  }
+
+  th {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.58rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 8px 4px;
+    border-right: 1px solid #444;
+    white-space: nowrap;
+    text-align: center;
+    user-select: none;
+  }
+  th.left { text-align: left; padding-left: 8px; }
+
+  td {
+    padding: 3px 3px;
+    border-right: 1px solid var(--border-light);
+    border-bottom: 1px solid var(--border-light);
+    text-align: center;
+    vertical-align: middle;
+    position: relative;
+  }
+  td.left { text-align: left; padding-left: 8px; }
+
+  td.status-td { width: 40px; min-width: 40px; max-width: 48px; position: relative; padding: 0; }
+
+  tbody tr:hover { background: var(--row-hover); }
+  tbody tr { cursor: grab; }
+  tbody tr:active { cursor: grabbing; }
+  tbody tr.drag-over { border-top: 2px solid #2a2a2a; background: #e8e3d8; }
+  tbody tr.dragging { opacity: 0.4; }
+
+  /* ---- Status cell ---- */
+  .status-cell {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0px;
+    cursor: pointer;
+    width: 36px;
+    min-height: 26px;
+    padding: 1px;
+    border-radius: 2px;
+    transition: background 0.1s;
+    user-select: none;
+  }
+  .status-cell:hover { background: rgba(0,0,0,0.07); }
+
+  .status-symbol {
+    font-size: 0.95rem;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .status-initials {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.52rem;
+    font-weight: 600;
+    color: var(--initials);
+    letter-spacing: 0.02em;
+    min-height: 7px;
+    line-height: 1;
+  }
+
+  .s-empty  { color: #ccc; }
+  .s-check  { color: var(--check); }
+  .s-init   { color: var(--initials); font-size: 0.68rem; font-weight: 700; }
+
+  /* NA cell — black X */
+  .na-x {
+    display: block;
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    inset: 0;
+    cursor: pointer;
+    transition: background 0.1s;
+    user-select: none;
+    overflow: hidden;
+  }
+  .na-x:hover { background: rgba(0,0,0,0.07); }
+
+  /* Billed */
+  .billed-display {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: var(--billed-color);
+    cursor: pointer;
+    display: inline-block;
+    min-width: 36px;
+    min-height: 26px;
+    line-height: 26px;
+    text-align: center;
+    border-radius: 2px;
+    transition: background 0.1s;
+    user-select: none;
+  }
+  .billed-display:hover { background: rgba(0,0,0,0.07); }
+  .billed-display.empty { color: #ccc; font-weight: 400; }
+
+  /* Computer badge */
+  .computer-badge {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.6rem;
+    font-weight: 600;
+    color: var(--yellow);
+    background: rgba(230,168,23,0.12);
+    border: 1px solid rgba(230,168,23,0.35);
+    border-radius: 2px;
+    padding: 1px 4px;
+    margin-left: 5px;
+    cursor: default;
+    white-space: nowrap;
+  }
+
+  .tag-loc {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.6rem;
+    font-weight: 600;
+    padding: 2px 5px;
+    background: var(--border);
+    color: var(--header-text);
+    display: inline-block;
+  }
+
+  .tag-client { font-weight: 600; font-size: 0.8rem; }
+  .proj-name { font-weight: 600; font-size: 0.8rem; }
+
+  .date-cell {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+  .date-cell.due-overdue {
+    color: #c0392b !important;
+    font-weight: 700;
+  }
+  .date-cell.due-soon {
+    color: #b57a00 !important;
+    font-weight: 700;
+  }
+
+  .sent-date-cell {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: var(--circle);
+    white-space: nowrap;
+  }
+
+  .drag-handle {
+    color: #ccc;
+    font-size: 0.75rem;
+    cursor: grab;
+    padding: 0 3px;
+    user-select: none;
+  }
+
+  /* ---- Initials Popover (tiny, for right-click / long tap) ---- */
+  .init-pop {
+    display: none;
+    position: fixed;
+    z-index: 500;
+    background: var(--panel);
+    border: 2px solid var(--border);
+    padding: 10px;
+    box-shadow: 4px 4px 0 rgba(0,0,0,0.12);
+    width: 160px;
+  }
+  .init-pop.open { display: block; }
+  .init-pop .pop-header {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.6rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--text-muted);
+    margin-bottom: 7px;
+  }
+  .init-pop-input {
+    width: 100%;
+    padding: 5px 7px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.78rem;
+    font-weight: 600;
+    border: 1.5px solid var(--border-light);
+    background: var(--bg);
+    color: var(--initials);
+    text-transform: uppercase;
+    outline: none;
+    letter-spacing: 0.1em;
+    margin-bottom: 7px;
+  }
+  .init-pop-input:focus { border-color: var(--border); }
+  .init-pop-actions { display: flex; gap: 5px; }
+
+  /* Billed Popover */
+  .billed-pop {
+    display: none;
+    position: fixed;
+    z-index: 500;
+    background: var(--panel);
+    border: 2px solid var(--border);
+    padding: 10px;
+    box-shadow: 4px 4px 0 rgba(0,0,0,0.12);
+    width: 140px;
+  }
+  .billed-pop.open { display: block; }
+  .billed-pop .pop-header {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.6rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+  .billed-opt {
+    display: block;
+    width: 100%;
+    padding: 7px 10px;
+    margin-bottom: 5px;
+    border: 1.5px solid var(--border-light);
+    background: var(--bg);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+    text-align: left;
+    color: var(--text);
+    transition: all 0.1s;
+  }
+  .billed-opt:last-child { margin-bottom: 0; }
+  .billed-opt:hover { background: var(--border); color: white; }
+  .billed-opt.active { background: var(--border); color: white; border-color: var(--border); }
+  .billed-opt.opt-kg { color: var(--billed-color); }
+  .billed-opt.opt-kg:hover { color: white; }
+  .billed-opt.opt-half { color: var(--billed-color); }
+  .billed-opt.opt-half:hover { color: white; }
+  .billed-opt.opt-clear { color: #aaa; font-weight: 400; border-style: dashed; }
+
+  /* ---- Modal ---- */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 300;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--panel);
+    border: 2px solid var(--border);
+    width: 540px;
+    max-width: 95vw;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 26px;
+  }
+
+  .modal h2 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.88rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 18px;
+    padding-bottom: 12px;
+    border-bottom: 1.5px solid var(--border-light);
+  }
+
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; }
+  .form-group { display: flex; flex-direction: column; gap: 4px; }
+  .form-group.full { grid-column: 1/-1; }
+  .form-group label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.6rem;
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .form-group input, .form-group select {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 0.8rem;
+    padding: 7px 9px;
+    border: 1.5px solid var(--border-light);
+    background: var(--bg);
+    color: var(--text);
+    width: 100%;
+    outline: none;
+  }
+  .form-group input:focus { border-color: var(--border); }
+
+  .modal-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    margin-top: 18px;
+    padding-top: 14px;
+    border-top: 1.5px solid var(--border-light);
+    flex-wrap: wrap;
+  }
+  .btn-danger { border-color: #c0392b; color: #c0392b; }
+  .btn-danger:hover { background: #c0392b; color: white; }
+  .btn-archive-modal { border-color: #8B4513; color: #8B4513; }
+  .btn-archive-modal:hover { background: #8B4513; color: white; }
+
+  /* stats */
+  .stats-bar { display: flex; gap: 18px; margin-bottom: 14px; flex-wrap: wrap; }
+  .stat { display: flex; flex-direction: column; gap: 2px; }
+  .stat-value { font-family: 'IBM Plex Mono', monospace; font-size: 1.3rem; font-weight: 600; line-height: 1; }
+  .stat-label { font-size: 0.64rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; }
+
+  .saved-toast {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: var(--border);
+    color: var(--panel);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.7rem;
+    padding: 9px 16px;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: all 0.2s;
+    z-index: 600;
+    pointer-events: none;
+  }
+  .saved-toast.show { opacity: 1; transform: translateY(0); }
+
+  /* ---- Change Log ---- */
+  .changelog-section {
+    margin-top: 28px;
+    border: 1.5px solid var(--border);
+    background: var(--panel);
+  }
+  .changelog-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: var(--header-bg);
+    color: var(--header-text);
+    cursor: pointer;
+    user-select: none;
+  }
+  .changelog-header h3 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .changelog-toggle {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.6rem;
+    color: #aaa;
+  }
+  .changelog-body {
+    max-height: 240px;
+    overflow-y: auto;
+  }
+  .changelog-empty {
+    padding: 14px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    text-align: center;
+  }
+  .log-entry {
+    display: grid;
+    grid-template-columns: 140px 90px 120px 1fr;
+    gap: 0;
+    border-bottom: 1px solid var(--border-light);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.62rem;
+    align-items: stretch;
+  }
+  .log-entry:last-child { border-bottom: none; }
+  .log-entry > span {
+    padding: 5px 10px;
+    border-right: 1px solid var(--border-light);
+    display: flex;
+    align-items: center;
+  }
+  .log-entry > span:last-child { border-right: none; }
+  .log-ts { color: var(--text-muted); }
+  .log-proj { font-weight: 600; color: var(--text); }
+  .log-col { color: var(--circle); }
+  .log-change { color: var(--text); }
+  .log-entry:hover { background: var(--row-hover); }
+
+  .changelog-clear-btn {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.6rem;
+    color: #aaa;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 2px 6px;
+    text-decoration: underline;
+  }
+  .changelog-clear-btn:hover { color: var(--billed-color); }
+
+  /* ── Auth banner ── */
+  #auth-banner {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--panel);
+    border: 1.5px solid var(--border);
+    padding: 8px 14px;
+    margin-bottom: 14px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.72rem;
+  }
+  #auth-banner .user-name { font-weight: 600; color: var(--text); }
+  #auth-banner .user-initials-badge {
+    font-size: 0.62rem; font-weight: 700; color: var(--initials);
+    background: rgba(107,71,168,0.1); border: 1px solid rgba(107,71,168,0.25);
+    padding: 2px 6px; border-radius: 2px;
+  }
+  .sync-status {
+    margin-left: auto; font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.65rem; color: var(--text-muted);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .sync-dot { width:7px; height:7px; border-radius:50%; background:#ccc; display:inline-block; transition:background 0.3s; }
+  .sync-dot.synced  { background: var(--check); }
+  .sync-dot.syncing { background: var(--yellow); }
+  .sync-dot.error   { background: var(--billed-color); }
+  #switch-user-btn {
+    font-family: 'IBM Plex Mono', monospace; font-size: 0.6rem; font-weight: 600;
+    letter-spacing: 0.04em; text-transform: uppercase; padding: 3px 8px;
+    border: 1px solid var(--border-light); background: transparent;
+    color: var(--text-muted); cursor: pointer; transition: all 0.12s;
+  }
+  #switch-user-btn:hover { border-color: var(--border); color: var(--text); }
+
+  /* ── User login overlay ── */
+  #user-login-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.55);
+    z-index: 1000; display: flex; align-items: center; justify-content: center;
+  }
+  #user-login-overlay.hidden { display: none; }
+  .user-login-box {
+    background: var(--panel); border: 2px solid var(--border);
+    padding: 28px 30px; width: 400px; max-width: 95vw;
+    box-shadow: 6px 6px 0 rgba(0,0,0,0.15);
+  }
+  .user-login-box h2 {
+    font-family: 'IBM Plex Mono', monospace; font-size: 0.85rem; font-weight: 600;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1.5px solid var(--border-light);
+  }
+  .user-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 4px; max-height: 260px; overflow-y: auto; }
+  .user-btn {
+    display: flex; align-items: center; gap: 10px; width: 100%;
+    padding: 9px 12px; border: 1.5px solid var(--border-light);
+    background: var(--bg); cursor: pointer; font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 0.82rem; text-align: left; transition: all 0.12s; color: var(--text);
+  }
+  .user-btn:hover { background: var(--border); color: var(--panel); }
+  .user-btn .ubadge {
+    font-family: 'IBM Plex Mono', monospace; font-size: 0.62rem; font-weight: 700;
+    color: var(--initials); background: rgba(107,71,168,0.1);
+    border: 1px solid rgba(107,71,168,0.25); padding: 2px 5px;
+    border-radius: 2px; min-width: 32px; text-align: center;
+  }
+  .user-btn:hover .ubadge { color:#d0b8ff; background:rgba(255,255,255,0.1); border-color:rgba(255,255,255,0.2); }
+  .user-divider {
+    font-family: 'IBM Plex Mono', monospace; font-size: 0.6rem; color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: 0.08em; margin: 14px 0 10px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .user-divider::before, .user-divider::after { content:''; flex:1; height:1px; background:var(--border-light); }
+  .new-user-form { display: flex; flex-direction: column; gap: 8px; }
+  .new-user-row { display: grid; grid-template-columns: 1fr 90px; gap: 8px; }
+  .new-user-form input {
+    font-family: 'IBM Plex Mono', monospace; font-size: 0.75rem; padding: 7px 9px;
+    border: 1.5px solid var(--border-light); background: var(--bg); color: var(--text);
+    outline: none; width: 100%;
+  }
+  .new-user-form input:focus { border-color: var(--border); }
+  .new-user-form input::placeholder { color: #bbb; }
+  .new-user-add-btn {
+    font-family: 'IBM Plex Mono', monospace; font-size: 0.68rem; font-weight: 600;
+    letter-spacing: 0.05em; text-transform: uppercase; padding: 8px 14px;
+    border: 1.5px solid var(--border); background: var(--border); color: var(--panel);
+    cursor: pointer; transition: all 0.15s;
+  }
+  .new-user-add-btn:hover { background: #444; }
 </style>
 </head>
-
 <body>
 
-<!-- AUTH BANNER (kept, but simplified state only) -->
-<div id="auth-banner">
-  <span id="auth-state-text" class="user-info">User: loading...</span>
-  <div class="sync-status">
-    <span class="sync-dot" id="sync-dot"></span>
-    <span id="sync-label">—</span>
+<!-- User login overlay -->
+<div id="user-login-overlay">
+  <div class="user-login-box">
+    <h2>Who are you?</h2>
+    <div class="user-list" id="user-list"></div>
+    <div class="user-divider">or add yourself</div>
+    <div class="new-user-form">
+      <div class="new-user-row">
+        <input type="text" id="new-user-name" placeholder="Full name" maxlength="40"
+          onkeydown="if(event.key==='Enter')document.getElementById('new-user-initials').focus()">
+        <input type="text" id="new-user-initials" placeholder="Initials" maxlength="4"
+          oninput="this.value=this.value.toUpperCase()"
+          onkeydown="if(event.key==='Enter')addAndSelectUser()">
+      </div>
+      <button class="new-user-add-btn" onclick="addAndSelectUser()">Add &amp; Select &#x2192;</button>
+    </div>
   </div>
 </div>
 
-<!-- MAIN APP (always visible now) -->
-<div id="app" style="display:block">
-
-  <h1>Project Status Board</h1>
-
-  <div class="meta" id="last-saved">
-    Loading data… &nbsp;|&nbsp; <span id="row-count">0</span> projects
+<!-- Auth banner -->
+<div id="auth-banner">
+  <span id="auth-state-text"></span>
+  <button id="switch-user-btn" onclick="showUserLogin()">Switch User</button>
+  <div class="sync-status">
+    <span class="sync-dot" id="sync-dot"></span>
+    <span id="sync-label">&#x2014;</span>
   </div>
+</div>
 
-  <div class="toolbar">
-    <button class="btn primary" onclick="openAddModal()">+ Add Project</button>
-    <button class="btn" onclick="exportCSV()">Export CSV</button>
+<h1>Project Status Board</h1>
+<div class="meta" id="last-saved">Not yet saved &nbsp;|&nbsp; <span id="row-count">0</span> projects</div>
+
+<div class="toolbar">
+  <button class="btn primary" onclick="openAddModal()">+ Add Project</button>
+  <button class="btn" onclick="exportCSV()">Export CSV</button>
+  <div class="filter-group">
+    <input type="text" id="search" placeholder="Search..." oninput="renderTable()" style="width:140px">
+    <select id="filter-loc" onchange="renderTable()"><option value="">All Locations</option></select>
+    <select id="filter-client" onchange="renderTable()"><option value="">All Clients</option></select>
   </div>
+</div>
 
-  <div class="stats-bar" id="stats-bar"></div>
+<div class="stats-bar" id="stats-bar"></div>
 
-  <div class="table-wrap">
-    <table>
-      <thead>
-        <tr>
-          <th></th>
-          <th>Location</th>
-          <th>Client</th>
-          <th>Project</th>
-          <th>Flight</th>
-          <th>Due</th>
-          <th>Sent</th>
-          <th>Billed</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody id="tbody"></tbody>
-    </table>
+<div class="table-wrap">
+<table>
+  <thead>
+    <tr>
+      <th style="width:20px"></th>
+      <th class="left" style="min-width:70px">Location</th>
+      <th class="left" style="min-width:55px">Client</th>
+      <th class="left" style="min-width:150px">Project Name</th>
+      <th style="min-width:60px">Flight<br>Date</th>
+      <th style="min-width:55px">Due<br>Date</th>
+      <th>Flight</th>
+      <th>Server</th>
+      <th>Drone<br>Deploy</th>
+      <th>Notes</th>
+      <th>Process</th>
+      <th>Export</th>
+      <th>Plani-<br>metrics</th>
+      <th>Obliques</th>
+      <th>Poster</th>
+      <th>NAD83</th>
+      <th>Deliver-<br>ables</th>
+      <th>Review</th>
+      <th style="min-width:58px">Sent</th>
+      <th>Billed</th>
+      <th style="width:38px"></th>
+    </tr>
+  </thead>
+  <tbody id="tbody"></tbody>
+</table>
+</div>
+
+<!-- Initials mini-popover (right-click) -->
+<div class="init-pop" id="init-pop">
+  <div class="pop-header" id="init-pop-header">Initials</div>
+  <div id="init-pop-quickpick" style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:7px;"></div>
+  <input class="init-pop-input" type="text" id="init-pop-input" maxlength="8" placeholder="or type initials"
+    oninput="this.value=this.value.toUpperCase()"
+    onkeydown="if(event.key==='Enter')applyInitPop();if(event.key==='Escape')closeInitPop();">
+  <div class="init-pop-actions">
+    <button class="btn primary" style="flex:1;padding:5px;font-size:0.6rem" onclick="applyInitPop()">Save</button>
+    <button class="btn" style="padding:5px 9px;font-size:0.6rem" onclick="closeInitPop()">✕</button>
   </div>
+</div>
 
+<!-- Billed Popover -->
+<div class="billed-pop" id="billed-pop">
+  <div class="pop-header">Billed</div>
+  <button class="billed-opt opt-kg"   data-val="KG"     onclick="setBilled('KG')">KG</button>
+  <button class="billed-opt opt-half" data-val="1/2 KG" onclick="setBilled('1/2 KG')">1/2 KG</button>
+  <button class="billed-opt opt-clear" data-val=""      onclick="setBilled('')">· clear</button>
+</div>
+
+<!-- Edit/Add Modal -->
+<div class="modal-overlay" id="modal-overlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <h2 id="modal-title">Add Project</h2>
+    <div class="form-grid">
+      <div class="form-group"><label>Location</label><input type="text" id="f-location" placeholder="NTX, STX, CTX…"></div>
+      <div class="form-group"><label>Client</label><input type="text" id="f-client" placeholder="Client name/code"></div>
+      <div class="form-group full"><label>Project Name *</label><input type="text" id="f-name" placeholder="Project name"></div>
+      <div class="form-group"><label>Flight Date</label><input type="text" id="f-flightDate" placeholder="3/31"></div>
+      <div class="form-group"><label>Due Date <span style="font-weight:300;text-transform:none">(blank = auto 2wks)</span></label><input type="text" id="f-dueDate" placeholder="auto or e.g. 4-10"></div>
+      <div class="form-group"><label>Sent Date</label><input type="text" id="f-sent" placeholder="e.g. 4/9/25"></div>
+      <div class="form-group"><label>Computer (C: drive location)</label><input type="text" id="f-computer" placeholder="e.g. PC-01, John's PC"></div>
+      <div class="form-group full"><label>Additional Notes</label><input type="text" id="f-notes" placeholder="Free text"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-danger" id="delete-btn" onclick="deleteProject()" style="display:none;margin-right:auto">Delete</button>
+      <button class="btn btn-archive-modal" id="archive-btn" onclick="archiveThis()" style="display:none">Archive</button>
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn primary" onclick="saveProject()">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="saved-toast" id="toast"></div>
+
+<!-- ---- Change Log ---- -->
+<div class="changelog-section">
+  <div class="changelog-header" onclick="toggleLog()">
+    <h3>📋 Change Log</h3>
+    <div style="display:flex;align-items:center;gap:10px">
+      <button class="changelog-clear-btn" onclick="event.stopPropagation();clearLog()">Clear log</button>
+      <span class="changelog-toggle" id="log-toggle">▼ show</span>
+    </div>
+  </div>
+  <div class="changelog-body" id="changelog-body" style="display:none">
+    <div class="changelog-empty" id="changelog-empty">No changes recorded yet.</div>
+  </div>
 </div>
 
 <script>
+// ============================================================
+// CONFIG
+// ============================================================
+const WM_ONLY_COLS = new Set(['DroneDeploy','Notes','Planimetrics','Obliques','Poster','NAD83']);
+const SCOLS   = ['Flight','Server','DroneDeploy','Notes','Process','Export','Planimetrics','Obliques','Poster','NAD83','Deliverables','Review'];
+const SLABELS = ['Flight','Server','Drone Deploy','Notes','Process','Export','Planimetrics','Obliques','Poster','NAD83','Deliverables','Review'];
+
+// Click-cycle order: empty → check → N/A → empty ...
+// State encoding: {v:'', na:false} = dot/empty | {v:'✓', na:false} = check | {na:true} = N/A
+
+function blankStatuses(client) {
+  const o = {};
+  SCOLS.forEach(c => {
+    const autoNA = WM_ONLY_COLS.has(c) && (client||'').toUpperCase() !== 'WM';
+    o[c] = {v:'', i:'', na: autoNA};
+  });
+  return o;
+}
+
+function applyAutoNA(proj) {
+  const isWM = (proj.client||'').toUpperCase() === 'WM';
+  SCOLS.forEach(c => {
+    if (WM_ONLY_COLS.has(c)) {
+      if (!isWM && !proj[c].v && !proj[c].i) proj[c].na = true;
+    }
+  });
+}
 
 // ============================================================
-// GITHUB CONFIG (UNCHANGED AS YOU REQUESTED)
+// SEED DATA
+// ============================================================
+const SEED = [
+  {id:1,location:'',client:'JM',name:'Elm Creek',flightDate:'3-31',dueDate:'',sent:'',notes:'',computer:'',billed:'',
+   Flight:{v:'✓',i:'',na:false},Server:{v:'✓',i:'',na:false},DroneDeploy:{v:'',i:'',na:true},Notes:{v:'✓',i:'',na:true},Process:{v:'✓',i:'',na:false},Export:{v:'✓',i:'',na:false},Planimetrics:{v:'',i:'',na:true},Obliques:{v:'',i:'',na:true},Poster:{v:'',i:'',na:true},NAD83:{v:'',i:'',na:true},Deliverables:{v:'',i:'',na:false},Review:{v:'',i:'',na:false}},
+  {id:2,location:'',client:'JM',name:'Coleman Co.',flightDate:'3-31',dueDate:'',sent:'',notes:'',computer:'',billed:'',
+   Flight:{v:'✓',i:'',na:false},Server:{v:'✓',i:'',na:false},DroneDeploy:{v:'',i:'',na:true},Notes:{v:'✓',i:'',na:true},Process:{v:'✓',i:'',na:false},Export:{v:'✓',i:'',na:false},Planimetrics:{v:'',i:'',na:true},Obliques:{v:'',i:'',na:true},Poster:{v:'',i:'',na:true},NAD83:{v:'',i:'',na:true},Deliverables:{v:'',i:'',na:false},Review:{v:'',i:'',na:false}},
+  {id:3,location:'',client:'GP',name:'Toledo',flightDate:'3-7',dueDate:'',sent:'',notes:'Need Final Design for Whole Lf',computer:'',billed:'',
+   Flight:{v:'✓',i:'',na:false},Server:{v:'✓',i:'',na:false},DroneDeploy:{v:'',i:'',na:true},Notes:{v:'',i:'',na:true},Process:{v:'✓',i:'',na:false},Export:{v:'',i:'CE',na:false},Planimetrics:{v:'',i:'',na:true},Obliques:{v:'',i:'',na:true},Poster:{v:'',i:'',na:true},NAD83:{v:'',i:'',na:true},Deliverables:{v:'',i:'',na:false},Review:{v:'',i:'',na:false}},
+  {id:4,location:'',client:'GP',name:'Leaf River',flightDate:'8-??',dueDate:'',sent:'',notes:'',computer:'',billed:'',
+   Flight:{v:'',i:'',na:false},Server:{v:'',i:'',na:false},DroneDeploy:{v:'',i:'',na:true},Notes:{v:'',i:'',na:true},Process:{v:'',i:'',na:false},Export:{v:'',i:'',na:false},Planimetrics:{v:'',i:'',na:true},Obliques:{v:'',i:'',na:true},Poster:{v:'',i:'',na:true},NAD83:{v:'',i:'',na:true},Deliverables:{v:'',i:'',na:false},Review:{v:'',i:'',na:false}},
+  {id:5,location:'NTX',client:'WM',name:'Hillside',flightDate:'3/3',dueDate:'',sent:'',notes:'',computer:'',billed:'KG',
+   Flight:{v:'✓',i:'',na:false},Server:{v:'✓',i:'',na:false},DroneDeploy:{v:'✓',i:'',na:false},Notes:{v:'✓',i:'',na:false},Process:{v:'✓',i:'',na:false},Export:{v:'✓',i:'',na:false},Planimetrics:{v:'✓',i:'',na:false},Obliques:{v:'✓',i:'',na:false},Poster:{v:'✓',i:'',na:false},NAD83:{v:'✓',i:'',na:false},Deliverables:{v:'✓',i:'',na:false},Review:{v:'',i:'',na:false}},
+  {id:6,location:'NTX',client:'WM',name:'Skyline',flightDate:'3/3',dueDate:'',sent:'',notes:'',computer:'',billed:'KG',
+   Flight:{v:'✓',i:'',na:false},Server:{v:'✓',i:'',na:false},DroneDeploy:{v:'✓',i:'',na:false},Notes:{v:'✓',i:'',na:false},Process:{v:'✓',i:'',na:false},Export:{v:'✓',i:'',na:false},Planimetrics:{v:'✓',i:'',na:false},Obliques:{v:'',i:'CE',na:false},Poster:{v:'',i:'',na:false},NAD83:{v:'',i:'',na:false},Deliverables:{v:'',i:'',na:false},Review:{v:'',i:'',na:false}},
+  {id:7,location:'NTX',client:'WM',name:'New Boston',flightDate:'3/3',dueDate:'',sent:'',notes:'',computer:'',billed:'KG',
+   Flight:{v:'✓',i:'',na:false},Server:{v:'✓',i:'',na:false},DroneDeploy:{v:'✓',i:'',na:false},Notes:{v:'✓',i:'',na:false},Process:{v:'✓',i:'',na:false},Export:{v:'',i:'',na:false},Planimetrics:{v:'',i:'CE',na:false},Obliques:{v:'',i:'',na:false},Poster:{v:'',i:'',na:false},NAD83:{v:'',i:'',na:false},Deliverables:{v:'',i:'',na:false},Review:{v:'',i:'',na:false}},
+  {id:8,location:'STX',client:'WM',name:'Fairbanks',flightDate:'2/25',dueDate:'',sent:'',notes:'',computer:'',billed:'1/2 KG',
+   Flight:{v:'✓',i:'',na:false},Server:{v:'✓',i:'',na:false},DroneDeploy:{v:'✓',i:'',na:false},Notes:{v:'✓',i:'',na:false},Process:{v:'✓',i:'',na:false},Export:{v:'',i:'',na:false},Planimetrics:{v:'',i:'',na:false},Obliques:{v:'',i:'',na:false},Poster:{v:'',i:'',na:false},NAD83:{v:'',i:'',na:false},Deliverables:{v:'',i:'',na:false},Review:{v:'',i:'',na:false}},
+  {id:9,location:'STX',client:'WM',name:'Baytown',flightDate:'2/26',dueDate:'',sent:'',notes:'',computer:'',billed:'1/2 KG',
+   Flight:{v:'✓',i:'',na:false},Server:{v:'✓',i:'',na:false},DroneDeploy:{v:'✓',i:'',na:false},Notes:{v:'✓',i:'',na:false},Process:{v:'✓',i:'',na:false},Export:{v:'',i:'',na:false},Planimetrics:{v:'',i:'',na:false},Obliques:{v:'',i:'',na:false},Poster:{v:'',i:'',na:false},NAD83:{v:'',i:'',na:false},Deliverables:{v:'',i:'',na:false},Review:{v:'',i:'',na:false}},
+  {id:10,location:'STX',client:'WM',name:'Coastal Plains',flightDate:'3/26',dueDate:'',sent:'',notes:'',computer:'',billed:'KG',
+   Flight:{v:'✓',i:'',na:false},Server:{v:'✓',i:'',na:false},DroneDeploy:{v:'✓',i:'',na:false},Notes:{v:'',i:'',na:false},Process:{v:'',i:'',na:false},Export:{v:'',i:'',na:false},Planimetrics:{v:'',i:'',na:false},Obliques:{v:'',i:'',na:false},Poster:{v:'',i:'',na:false},NAD83:{v:'',i:'',na:false},Deliverables:{v:'',i:'',na:false},Review:{v:'',i:'',na:false}},
+  {id:11,location:'STX',client:'WM',name:'Security',flightDate:'3/10',dueDate:'',sent:'',notes:'',computer:'',billed:'KG',
+   Flight:{v:'✓',i:'',na:false},Server:{v:'✓',i:'',na:false},DroneDeploy:{v:'✓',i:'',na:false},Notes:{v:'',i:'',na:false},Process:{v:'',i:'',na:false},Export:{v:'',i:'',na:false},Planimetrics:{v:'',i:'',na:false},Obliques:{v:'',i:'',na:false},Poster:{v:'',i:'',na:false},NAD83:{v:'',i:'',na:false},Deliverables:{v:'',i:'',na:false},Review:{v:'',i:'',na:false}},
+  {id:12,location:'STX',client:'WM',name:'Atascacita',flightDate:'3/5',dueDate:'',sent:'',notes:'',computer:'',billed:'KG',
+   Flight:{v:'✓',i:'',na:false},Server:{v:'✓',i:'',na:false},DroneDeploy:{v:'✓',i:'',na:false},Notes:{v:'',i:'',na:false},Process:{v:'',i:'',na:false},Export:{v:'',i:'',na:false},Planimetrics:{v:'',i:'',na:false},Obliques:{v:'',i:'',na:false},Poster:{v:'',i:'',na:false},NAD83:{v:'',i:'',na:false},Deliverables:{v:'',i:'',na:false},Review:{v:'',i:'',na:false}},
+  {id:13,location:'STX',client:'WM',name:'Newton',flightDate:'3/31',dueDate:'',sent:'',notes:'',computer:'',billed:'KG',
+   Flight:{v:'✓',i:'',na:false},Server:{v:'✓',i:'',na:false},DroneDeploy:{v:'✓',i:'',na:false},Notes:{v:'',i:'',na:false},Process:{v:'',i:'',na:false},Export:{v:'',i:'',na:false},Planimetrics:{v:'',i:'',na:false},Obliques:{v:'',i:'',na:false},Poster:{v:'',i:'',na:false},NAD83:{v:'',i:'',na:false},Deliverables:{v:'',i:'',na:false},Review:{v:'',i:'',na:false}},
+  {id:14,location:'STX',client:'WM',name:'Conroe 7',flightDate:'3/12',dueDate:'',sent:'',notes:'',computer:'',billed:'KG',
+   Flight:{v:'✓',i:'',na:false},Server:{v:'✓',i:'',na:false},DroneDeploy:{v:'✓',i:'',na:false},Notes:{v:'',i:'',na:false},Process:{v:'',i:'',na:false},Export:{v:'',i:'',na:false},Planimetrics:{v:'',i:'',na:false},Obliques:{v:'',i:'',na:false},Poster:{v:'',i:'',na:false},NAD83:{v:'',i:'',na:false},Deliverables:{v:'',i:'',na:false},Review:{v:'',i:'',na:false}},
+  {id:15,location:'STX',client:'WM',name:'Greenshadow',flightDate:'3/10',dueDate:'',sent:'',notes:'',computer:'',billed:'KG',
+   Flight:{v:'✓',i:'',na:false},Server:{v:'✓',i:'',na:false},DroneDeploy:{v:'✓',i:'',na:false},Notes:{v:'',i:'',na:false},Process:{v:'',i:'',na:false},Export:{v:'',i:'',na:false},Planimetrics:{v:'',i:'',na:false},Obliques:{v:'',i:'',na:false},Poster:{v:'',i:'',na:false},NAD83:{v:'',i:'',na:false},Deliverables:{v:'',i:'',na:false},Review:{v:'',i:'',na:false}},
+  {id:16,location:'CTX',client:'WM',name:'Mesquite Add-on',flightDate:'3/4',dueDate:'',sent:'',notes:'',computer:'',billed:'KG',
+   Flight:{v:'✓',i:'',na:false},Server:{v:'✓',i:'',na:false},DroneDeploy:{v:'',i:'',na:false},Notes:{v:'',i:'Bojo',na:false},Process:{v:'',i:'',na:false},Export:{v:'',i:'',na:false},Planimetrics:{v:'',i:'',na:false},Obliques:{v:'',i:'',na:false},Poster:{v:'',i:'',na:false},NAD83:{v:'',i:'',na:false},Deliverables:{v:'',i:'',na:false},Review:{v:'',i:'',na:false}},
+  {id:17,location:'',client:'DJ',name:'Gregg Co LiDAR',flightDate:'4/9',dueDate:'',sent:'',notes:'',computer:'',billed:'',
+   Flight:{v:'✓',i:'',na:false},Server:{v:'✓',i:'',na:false},DroneDeploy:{v:'',i:'',na:true},Notes:{v:'',i:'',na:true},Process:{v:'',i:'',na:false},Export:{v:'',i:'',na:false},Planimetrics:{v:'',i:'',na:true},Obliques:{v:'',i:'',na:true},Poster:{v:'',i:'',na:true},NAD83:{v:'',i:'',na:true},Deliverables:{v:'',i:'',na:false},Review:{v:'',i:'',na:false}},
+];
+
+// ============================================================
+// GITHUB STORAGE CONFIG
 // ============================================================
 const GH_TOKEN  = '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';
 const GH_REPO   = 'drones-hydrex/WhiteBoard';
 const GH_FILE   = 'projects.json';
 const GH_BRANCH = 'main';
 const GH_API    = `https://api.github.com/repos/${GH_REPO}/contents/${GH_FILE}`;
-
-const POLL_MS = 5000;
+const POLL_MS   = 15000;
 
 // ============================================================
 // STATE
 // ============================================================
-let projects = [];
-let nextId = 100;
-let lastSha = '';
-let currentUser = 'Team';
-let isSaving = false;
+let projects=[], nextId=100, editingId=null;
+let initPopProjId=null, initPopCol=null;
+let billedProjId=null;
+let dragSrcId=null;
+let changeLog=[];
+let logVisible=false;
+let pollTimer=null;
+let lastSha='';
+let isSaving=false;
+// User roster — stored in localStorage so it persists locally without a GitHub round-trip
+// Each entry: { name: string, initials: string }
+let knownUsers=[];
+let currentUser='';       // display name
+let currentUserInitials=''; // initials used in left-click cycle
 
 // ============================================================
-// LOAD
+// GITHUB STORAGE
 // ============================================================
-async function loadFromGitHub() {
+async function load() {
+  setSyncStatus('syncing', 'Loading…');
   try {
-    const res = await fetch(GH_API + '?ref=' + GH_BRANCH, {
-      headers: { Authorization: 'token ' + GH_TOKEN }
+    const res = await fetch(GH_API + '?ref=' + GH_BRANCH + '&t=' + Date.now(), {
+      headers: { Authorization: 'token ' + GH_TOKEN, Accept: 'application/vnd.github.v3+json' }
     });
-
+    if (res.status === 404) {
+      projects = JSON.parse(JSON.stringify(SEED)); nextId = 100; changeLog = [];
+      await saveToGitHub('Initial seed'); renderTable(); return;
+    }
+    if (!res.ok) throw new Error('HTTP ' + res.status);
     const data = await res.json();
     lastSha = data.sha;
-
-    const decoded = JSON.parse(atob(data.content.replace(/\n/g,'')));
-
-    projects = decoded.projects || [];
-    nextId = decoded.nextId || 100;
-
+    const decoded = JSON.parse(atob(data.content.replace(/\n/g, '')));
+    projects   = decoded.projects   || JSON.parse(JSON.stringify(SEED));
+    nextId     = decoded.nextId     || 100;
+    changeLog  = decoded.changeLog  || [];
     renderTable();
-    setSync('synced','Loaded');
-
-  } catch (e) {
-    console.error(e);
-    setSync('error','Load failed');
+    setSyncStatus('synced', 'Up to date');
+    updateLastSaved();
+  } catch(e) {
+    console.error('Load error', e);
+    setSyncStatus('error', 'Load failed');
+    if (!projects.length) { projects = JSON.parse(JSON.stringify(SEED)); renderTable(); }
   }
 }
 
-// ============================================================
-// SAVE (safe multi-user sync)
-// ============================================================
-async function saveToGitHub(msg='update') {
+async function saveToGitHub(commitMsg) {
   if (isSaving) return;
   isSaving = true;
-
-  await loadFromGitHub(); // prevents overwrite conflicts
-
+  setSyncStatus('syncing', 'Saving…');
   try {
-    const payload = JSON.stringify({ projects, nextId });
+    const payload = JSON.stringify({ projects, nextId, changeLog });
     const encoded = btoa(unescape(encodeURIComponent(payload)));
-
+    const body = { message: commitMsg || ('Update by ' + currentUser), content: encoded, branch: GH_BRANCH };
+    if (lastSha) body.sha = lastSha;
     const res = await fetch(GH_API, {
       method: 'PUT',
-      headers: {
-        Authorization: 'token ' + GH_TOKEN,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        message: msg,
-        content: encoded,
-        sha: lastSha,
-        branch: GH_BRANCH
-      })
+      headers: { Authorization: 'token ' + GH_TOKEN, Accept: 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
     });
-
+    if (!res.ok) {
+      const err = await res.json().catch(()=>({}));
+      throw new Error(err.message || ('HTTP ' + res.status));
+    }
     const result = await res.json();
     lastSha = result.content.sha;
+    setSyncStatus('synced', 'Saved ✓');
+    updateLastSaved();
+    showToast('Saved ✓');
+  } catch(e) {
+    console.error('Save error', e);
+    setSyncStatus('error', 'Save failed');
+    if (e.message && e.message.toLowerCase().includes('conflict')) {
+      setTimeout(async () => { await load(); await saveToGitHub(commitMsg); }, 2000);
+    }
+  } finally { isSaving = false; }
+}
 
-    setSync('synced','Saved');
+async function pollGitHub() {
+  try {
+    const res = await fetch(GH_API + '?ref=' + GH_BRANCH + '&t=' + Date.now(), {
+      headers: { Authorization: 'token ' + GH_TOKEN, Accept: 'application/vnd.github.v3+json' }
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data.sha && data.sha !== lastSha) { await load(); }
+  } catch(e) {}
+}
 
-  } catch (e) {
-    console.error(e);
-    setSync('error','Save failed');
+function startPolling() { stopPolling(); pollTimer = setInterval(pollGitHub, POLL_MS); }
+function stopPolling()  { if (pollTimer) { clearInterval(pollTimer); pollTimer = null; } }
+function persist()      { saveToGitHub(); }
+
+function setSyncStatus(state, label) {
+  const dot = document.getElementById('sync-dot');
+  const lbl = document.getElementById('sync-label');
+  if (dot) dot.className = 'sync-dot' + (state ? ' ' + state : '');
+  if (lbl) lbl.textContent = label;
+}
+
+function updateLastSaved() {
+  const now = new Date();
+  document.getElementById('last-saved').innerHTML =
+    `Last synced: ${now.toLocaleTimeString()} &nbsp;|&nbsp; <span id="row-count">${projects.length}</span> projects`;
+}
+
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),1800);
+}
+
+// ============================================================
+// CHANGE LOG
+// ============================================================
+function logChange(projName, colLabel, oldVal, newVal) {
+  const now = new Date();
+  const ts = now.toLocaleDateString('en-US',{month:'2-digit',day:'2-digit',year:'2-digit'})
+           + ' ' + now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  changeLog.unshift({ ts, proj: projName, col: colLabel, from: oldVal, to: newVal });
+  if (changeLog.length > 200) changeLog = changeLog.slice(0, 200);
+}
+
+function renderLog() {
+  const body = document.getElementById('changelog-body');
+  const empty = document.getElementById('changelog-empty');
+  if (!changeLog.length) {
+    empty.style.display = '';
+    return;
+  }
+  empty.style.display = 'none';
+  // remove old entries, keep empty div
+  Array.from(body.querySelectorAll('.log-entry')).forEach(e=>e.remove());
+  changeLog.forEach(entry => {
+    const div = document.createElement('div');
+    div.className = 'log-entry';
+    div.innerHTML = `<span class="log-ts">${entry.ts}</span>
+      <span class="log-proj">${entry.proj}</span>
+      <span class="log-col">${entry.col}</span>
+      <span class="log-change">${entry.from||'·'} → ${entry.to||'·'}</span>`;
+    body.appendChild(div);
+  });
+}
+
+function toggleLog() {
+  logVisible = !logVisible;
+  document.getElementById('changelog-body').style.display = logVisible ? '' : 'none';
+  document.getElementById('log-toggle').textContent = logVisible ? '▲ hide' : '▼ show';
+  if (logVisible) renderLog();
+}
+
+function clearLog() {
+  if (!confirm('Clear all change log entries?')) return;
+  changeLog = [];
+  persist();
+  renderLog();
+}
+
+// ============================================================
+// DUE DATE HELPERS
+// ============================================================
+// Parse common formats: "3/31", "3-31", "3/31/25", "3-31-25"
+function parseFlightDate(str) {
+  if (!str) return null;
+  // strip any year suffix, just use month/day with current year
+  const m = str.match(/^(\d{1,2})[-\/](\d{1,2})/);
+  if (!m) return null;
+  const now = new Date();
+  return new Date(now.getFullYear(), parseInt(m[1])-1, parseInt(m[2]));
+}
+
+function getEffectiveDueDate(p) {
+  // If explicit dueDate, try to parse it; else auto = flightDate + 14
+  if (p.dueDate) {
+    const d = parseFlightDate(p.dueDate);
+    if (d) return d;
+  }
+  const fd = parseFlightDate(p.flightDate);
+  if (fd) { fd.setDate(fd.getDate()+14); return fd; }
+  return null;
+}
+
+function formatDueDate(p) {
+  // If explicitly set, show as-is; else show computed
+  if (p.dueDate) return p.dueDate;
+  const fd = parseFlightDate(p.flightDate);
+  if (!fd) return '';
+  fd.setDate(fd.getDate()+14);
+  return (fd.getMonth()+1)+'/'+fd.getDate();
+}
+
+function dueDateClass(p) {
+  const due = getEffectiveDueDate(p);
+  if (!due) return '';
+  const today = new Date(); today.setHours(0,0,0,0);
+  due.setHours(0,0,0,0);
+  const diffMs = due - today;
+  const diffDays = Math.round(diffMs / 86400000);
+  if (diffDays < 0) return 'due-overdue';
+  if (diffDays <= 2) return 'due-soon';
+  return '';
+}
+
+// ============================================================
+// CELL STATE HELPERS
+// ============================================================
+function getEntry(p, col) {
+  const e = p[col];
+  return (e && typeof e==='object') ? e : {v:'',i:'',na:false};
+}
+
+// Cycle: empty → check+initials → N/A → empty
+// Left-click automatically stamps the current logged-in user's initials on ✓
+function cycleStatus(pid, col) {
+  const proj = projects.find(p=>p.id===pid); if(!proj) return;
+  const e = getEntry(proj, col);
+  const colLabel = SLABELS[SCOLS.indexOf(col)] || col;
+  const oldDesc = describeEntry(e);
+  let next;
+  if (e.na) {
+    // N/A → empty
+    next = {v:'', i:'', na:false};
+  } else if (e.v === '✓') {
+    // done → N/A
+    next = {v:'', i:'', na:true};
+  } else if (e.v === 'wip') {
+    // in-progress → done
+    next = {v:'✓', i:'', na:false};
+  } else {
+    // empty → in-progress, stamp current user's initials
+    next = {v:'wip', i:currentUserInitials, na:false};
+  }
+  proj[col] = next;
+  const newDesc = describeEntry(next);
+  logChange(proj.name, colLabel, oldDesc, newDesc);
+  persist(); renderTable();
+}
+
+function describeEntry(e) {
+  if (e.na) return 'N/A';
+  if (e.v === '\u2713') return '\u2713';
+  if (e.v === 'wip') return e.i ? `WIP (${e.i})` : 'WIP';
+  return '\u00b7';
+}
+
+// ============================================================
+// CELL RENDERING
+// ============================================================
+function cellHTML(pid, col) {
+  const p = projects.find(x=>x.id===pid);
+  const e = getEntry(p, col);
+
+  // N/A: full-cell diagonal X
+  if (e.na) {
+    return `<div class="na-x" onclick="cycleStatus(${pid},'${col}')" oncontextmenu="openInitPop(event,${pid},'${col}');return false;" title="N/A — click to cycle, right-click to assign initials">
+      <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none">
+        <line x1="8" y1="8" x2="92" y2="92" stroke="#1a1a1a" stroke-width="6" stroke-linecap="round"/>
+        <line x1="92" y1="8" x2="8" y2="92" stroke="#1a1a1a" stroke-width="6" stroke-linecap="round"/>
+      </svg>
+    </div>`;
   }
 
-  isSaving = false;
+  // Done: green check, no initials
+  if (e.v === '\u2713') {
+    return `<div class="status-cell" onclick="cycleStatus(${pid},'${col}')" oncontextmenu="openInitPop(event,${pid},'${col}');return false;" title="Done — click to cycle, right-click to assign initials">
+      <span class="status-symbol s-check">✓</span>
+    </div>`;
+  }
+
+  // In-progress: show initials prominently
+  if (e.v === 'wip') {
+    const disp = e.i || '?';
+    return `<div class="status-cell" onclick="cycleStatus(${pid},'${col}')" oncontextmenu="openInitPop(event,${pid},'${col}');return false;" title="In progress: ${disp} — click to cycle, right-click to change">
+      <span class="status-symbol s-init">${disp}</span>
+    </div>`;
+  }
+
+  // Empty
+  return `<div class="status-cell" onclick="cycleStatus(${pid},'${col}')" oncontextmenu="openInitPop(event,${pid},'${col}');return false;" title="Empty — click to cycle, right-click to assign initials">
+    <span class="status-symbol s-empty">·</span>
+  </div>`;
+}
+
+function billedCellHTML(pid) {
+  const p = projects.find(x=>x.id===pid);
+  const b = p.billed||'';
+  if (b) return `<span class="billed-display" onclick="openBilledPop(event,${pid})">${b}</span>`;
+  return `<span class="billed-display empty" onclick="openBilledPop(event,${pid})">·</span>`;
 }
 
 // ============================================================
-// POLLING (multi-user sync)
+// INITIALS MINI-POPOVER (right-click)
 // ============================================================
-function startPolling() {
-  setInterval(loadFromGitHub, POLL_MS);
+function openInitPop(evt, pid, col) {
+  evt.preventDefault(); evt.stopPropagation();
+  closeBilledPop();
+  const proj = projects.find(p=>p.id===pid); if(!proj) return;
+  const e = getEntry(proj, col);
+  initPopProjId = pid; initPopCol = col;
+  document.getElementById('init-pop-header').textContent = (SLABELS[SCOLS.indexOf(col)]||col)+' — Initials';
+  document.getElementById('init-pop-input').value = e.i||'';
+  // Populate quick-pick buttons from known users
+  const qp = document.getElementById('init-pop-quickpick');
+  if (knownUsers.length) {
+    qp.style.display = 'flex';
+    qp.innerHTML = knownUsers.map(u =>
+      `<button onclick="quickPickInitials('${u.initials}')" title="${u.name}"
+        style="font-family:'IBM Plex Mono',monospace;font-size:0.6rem;font-weight:700;
+          padding:3px 6px;border:1.5px solid var(--border-light);background:var(--bg);
+          color:var(--initials);cursor:pointer;border-radius:2px;transition:all 0.1s;"
+        onmouseover="this.style.background='var(--border)';this.style.color='white'"
+        onmouseout="this.style.background='var(--bg)';this.style.color='var(--initials)'">${u.initials}</button>`
+    ).join('');
+  } else {
+    qp.style.display = 'none';
+    qp.innerHTML = '';
+  }
+  const pop = document.getElementById('init-pop');
+  pop.classList.add('open');
+  positionEl(pop, evt.clientX, evt.clientY);
+  setTimeout(()=>document.getElementById('init-pop-input').focus(),40);
+}
+
+function quickPickInitials(initials) {
+  document.getElementById('init-pop-input').value = initials;
+  applyInitPop();
+}
+
+function applyInitPop() {
+  if (!initPopProjId || !initPopCol) return;
+  const proj = projects.find(p=>p.id===initPopProjId); if(!proj) return;
+  const e = getEntry(proj, initPopCol);
+  const newI = document.getElementById('init-pop-input').value.trim().toUpperCase();
+  const colLabel = SLABELS[SCOLS.indexOf(initPopCol)] || initPopCol;
+  if (newI !== e.i) logChange(proj.name, colLabel+' initials', e.i||'·', newI||'·');
+  // If initials are provided, always force the cell into 'wip' state so they display.
+  // If initials are cleared, revert to empty. Never touch a done (✓) or N/A cell's v/na.
+  let newV = e.v;
+  let newNa = e.na;
+  if (!e.na && e.v !== '\u2713') {
+    // Cell is either empty or wip — set to wip if initials given, empty if cleared
+    newV = newI ? 'wip' : '';
+  }
+  proj[initPopCol] = {v: newV, i: newI, na: newNa};
+  closeInitPop(); persist(); renderTable();
+}
+
+function closeInitPop() {
+  document.getElementById('init-pop').classList.remove('open');
+  initPopProjId = null; initPopCol = null;
 }
 
 // ============================================================
-// UI
+// BILLED POPOVER
 // ============================================================
-function renderTable() {
+function openBilledPop(evt, pid) {
+  evt.stopPropagation();
+  closeInitPop();
+  billedProjId = pid;
+  const proj = projects.find(p=>p.id===pid);
+  const cur = (proj&&proj.billed)||'';
+  document.querySelectorAll('.billed-opt').forEach(b=>{
+    b.classList.toggle('active', b.dataset.val===cur);
+  });
+  const pop = document.getElementById('billed-pop');
+  pop.classList.add('open');
+  positionEl(pop, evt.clientX, evt.clientY);
+}
+
+function setBilled(val) {
+  const proj = projects.find(p=>p.id===billedProjId); if(!proj) return;
+  if (proj.billed !== val) logChange(proj.name, 'Billed', proj.billed||'·', val||'·');
+  proj.billed = val;
+  closeBilledPop(); persist(); renderTable();
+}
+
+function closeBilledPop() {
+  document.getElementById('billed-pop').classList.remove('open');
+  billedProjId = null;
+}
+
+function positionEl(el, cx, cy) {
+  const w=el.offsetWidth||180, h=el.offsetHeight||120;
+  el.style.left=Math.min(cx, window.innerWidth-w-8)+'px';
+  el.style.top =Math.min(cy+10, window.innerHeight-h-8)+'px';
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key==='Escape') { closeInitPop(); closeBilledPop(); }
+});
+document.addEventListener('click', e => {
+  if (document.getElementById('init-pop').classList.contains('open') &&
+      !document.getElementById('init-pop').contains(e.target)) closeInitPop();
+  if (document.getElementById('billed-pop').classList.contains('open') &&
+      !document.getElementById('billed-pop').contains(e.target)) closeBilledPop();
+});
+
+// ============================================================
+// DRAG & DROP
+// ============================================================
+function setupDrag() {
   const tbody = document.getElementById('tbody');
-
-  tbody.innerHTML = projects.map(p => `
-    <tr>
-      <td></td>
-      <td>${p.location||''}</td>
-      <td>${p.client||''}</td>
-      <td>${p.name||''}</td>
-      <td>${p.flightDate||''}</td>
-      <td>${p.dueDate||''}</td>
-      <td>${p.sent||''}</td>
-      <td>${p.billed||''}</td>
-      <td><button onclick="deleteProject(${p.id})">X</button></td>
-    </tr>
-  `).join('');
-
-  document.getElementById('row-count').textContent = projects.length;
+  tbody.querySelectorAll('tr[data-id]').forEach(row => {
+    row.setAttribute('draggable','true');
+    row.addEventListener('dragstart', e => {
+      dragSrcId = parseInt(row.dataset.id);
+      setTimeout(()=>row.classList.add('dragging'),0);
+      e.dataTransfer.effectAllowed='move';
+    });
+    row.addEventListener('dragend', () => {
+      row.classList.remove('dragging');
+      tbody.querySelectorAll('tr').forEach(r=>r.classList.remove('drag-over'));
+    });
+    row.addEventListener('dragover', e => {
+      e.preventDefault();
+      tbody.querySelectorAll('tr').forEach(r=>r.classList.remove('drag-over'));
+      row.classList.add('drag-over');
+    });
+    row.addEventListener('drop', e => {
+      e.preventDefault();
+      const targetId = parseInt(row.dataset.id);
+      if (dragSrcId===targetId) return;
+      const si=projects.findIndex(p=>p.id===dragSrcId);
+      const ti=projects.findIndex(p=>p.id===targetId);
+      if (si<0||ti<0) return;
+      const [m]=projects.splice(si,1);
+      projects.splice(ti,0,m);
+      persist(); renderTable();
+    });
+  });
 }
 
 // ============================================================
-// BASIC ACTIONS
+// TABLE RENDER
+// ============================================================
+function getFiltered() {
+  const q=(document.getElementById('search').value||'').toLowerCase();
+  const loc=document.getElementById('filter-loc').value;
+  const cl=document.getElementById('filter-client').value;
+  return projects.filter(p => {
+    const mq=!q||p.name.toLowerCase().includes(q)||(p.location||'').toLowerCase().includes(q)
+      ||(p.client||'').toLowerCase().includes(q)||(p.notes||'').toLowerCase().includes(q)
+      ||(p.computer||'').toLowerCase().includes(q)
+      ||SCOLS.some(c=>getEntry(p,c).i.toLowerCase().includes(q));
+    return mq&&(!loc||p.location===loc)&&(!cl||p.client===cl);
+  });
+}
+
+function renderTable() {
+  const data = getFiltered();
+  document.getElementById('tbody').innerHTML = data.map(p => {
+    const loc=p.location?`<span class="tag-loc">${p.location}</span>`:'';
+    const cl=p.client?`<span class="tag-client">${p.client}</span>`:'';
+    const compBadge=p.computer?`<span class="computer-badge" title="C: drive location: ${p.computer}">💻 ${p.computer}</span>`:'';
+    const note=p.notes?`<br><span style="font-size:0.63rem;color:var(--text-muted)">${p.notes}</span>`:'';
+    const dueTxt = formatDueDate(p);
+    const dueCls = dueDateClass(p);
+    const dueTitle = dueCls==='due-overdue' ? 'OVERDUE' : dueCls==='due-soon' ? 'Due soon!' : '';
+    return `<tr data-id="${p.id}">
+      <td><span class="drag-handle" title="Drag to reorder">⠿</span></td>
+      <td class="left">${loc}</td>
+      <td class="left">${cl}</td>
+      <td class="left"><span class="proj-name">${p.name}</span>${compBadge}${note}</td>
+      <td><span class="date-cell">${p.flightDate||''}</span></td>
+      <td title="${dueTitle}"><span class="date-cell ${dueCls}">${dueTxt}</span></td>
+      ${SCOLS.map(c=>`<td class="status-td">${cellHTML(p.id,c)}</td>`).join('')}
+      <td><span class="sent-date-cell">${p.sent||''}</span></td>
+      <td>${billedCellHTML(p.id)}</td>
+      <td><button class="btn" style="padding:2px 7px;font-size:0.58rem" onclick="openEditModal(${p.id})">Edit</button></td>
+    </tr>`;
+  }).join('');
+  document.getElementById('row-count').textContent = projects.length;
+  updateStats(data);
+  updateFilters();
+  setupDrag();
+  if (logVisible) renderLog();
+}
+
+function updateStats(data) {
+  const total=data.length;
+  const billed=data.filter(p=>p.billed).length;
+  const reviewed=data.filter(p=>getEntry(p,'Review').v==='✓').length;
+  const sent=data.filter(p=>p.sent).length;
+  document.getElementById('stats-bar').innerHTML=`
+    <div class="stat"><span class="stat-value">${total}</span><span class="stat-label">Total</span></div>
+    <div class="stat"><span class="stat-value" style="color:var(--circle)">${sent}</span><span class="stat-label">Sent</span></div>
+    <div class="stat"><span class="stat-value" style="color:var(--check)">${reviewed}</span><span class="stat-label">Reviewed</span></div>
+    <div class="stat"><span class="stat-value" style="color:var(--billed-color)">${billed}</span><span class="stat-label">Billed</span></div>
+    <div class="stat"><span class="stat-value" style="color:var(--yellow)">${total-billed}</span><span class="stat-label">Unbilled</span></div>`;
+}
+
+function updateFilters() {
+  const locs=[...new Set(projects.map(p=>p.location).filter(Boolean))].sort();
+  const cls=[...new Set(projects.map(p=>p.client).filter(Boolean))].sort();
+  const sl=document.getElementById('filter-loc'),sc=document.getElementById('filter-client');
+  const cv=sl.value,cc=sc.value;
+  sl.innerHTML=`<option value="">All Locations</option>`+locs.map(l=>`<option value="${l}"${l===cv?' selected':''}>${l}</option>`).join('');
+  sc.innerHTML=`<option value="">All Clients</option>`+cls.map(c=>`<option value="${c}"${c===cc?' selected':''}>${c}</option>`).join('');
+}
+
+// ============================================================
+// MODAL
 // ============================================================
 function openAddModal() {
-  const name = prompt('Project name');
-  if (!name) return;
-
-  projects.push({
-    id: nextId++,
-    name,
-    location:'',
-    client:'',
-    flightDate:'',
-    dueDate:'',
-    sent:'',
-    billed:''
-  });
-
-  saveToGitHub('add project');
-  renderTable();
+  editingId=null;
+  document.getElementById('modal-title').textContent='Add Project';
+  document.getElementById('delete-btn').style.display='none';
+  document.getElementById('archive-btn').style.display='none';
+  ['location','client','name','flightDate','dueDate','sent','computer','notes']
+    .forEach(f=>document.getElementById('f-'+f).value='');
+  document.getElementById('modal-overlay').classList.add('open');
 }
 
-function deleteProject(id) {
-  projects = projects.filter(p => p.id !== id);
-  saveToGitHub('delete project');
-  renderTable();
+function openEditModal(id) {
+  editingId=id;
+  const p=projects.find(x=>x.id===id); if(!p) return;
+  document.getElementById('modal-title').textContent='Edit Project';
+  document.getElementById('delete-btn').style.display='inline-block';
+  document.getElementById('archive-btn').style.display='inline-block';
+  ['location','client','name','flightDate','dueDate','sent','computer','notes']
+    .forEach(f=>document.getElementById('f-'+f).value=p[f]||'');
+  document.getElementById('modal-overlay').classList.add('open');
 }
 
-// ============================================================
-// SYNC STATUS
-// ============================================================
-function setSync(state,text){
-  document.getElementById('sync-label').textContent = text;
-}
+function closeModal() { document.getElementById('modal-overlay').classList.remove('open'); }
 
-// ============================================================
-// INIT (NO AUTH ANYMORE)
-// ============================================================
-function initApp() {
-  const stored = sessionStorage.getItem('wb_user');
-
-  if (!stored) {
-    const name = prompt('Enter your initials');
-    sessionStorage.setItem('wb_user', name || 'Team');
+function saveProject() {
+  const g=id=>document.getElementById('f-'+id).value.trim();
+  if (!g('name')) { alert('Project name required.'); return; }
+  const clientVal=g('client');
+  if (editingId) {
+    const p=projects.find(x=>x.id===editingId);
+    const clientChanged = p.client !== clientVal;
+    const oldName=p.name;
+    Object.assign(p,{location:g('location'),client:clientVal,name:g('name'),
+      flightDate:g('flightDate'),dueDate:g('dueDate'),sent:g('sent'),
+      computer:g('computer'),notes:g('notes')});
+    if (clientChanged) applyAutoNA(p);
+    logChange(oldName, 'Project edited', '', p.name);
+  } else {
+    const newP={id:nextId++,location:g('location'),client:clientVal,name:g('name'),
+      flightDate:g('flightDate'),dueDate:g('dueDate'),sent:g('sent'),
+      computer:g('computer'),notes:g('notes'),billed:'',...blankStatuses(clientVal)};
+    projects.push(newP);
+    logChange(newP.name, 'Added', '', 'new project');
   }
-
-  currentUser = sessionStorage.getItem('wb_user') || 'Team';
-
-  document.getElementById('auth-state-text').innerText =
-    'User: ' + currentUser;
-
-  loadFromGitHub();
-  startPolling();
+  closeModal(); persist(); renderTable();
 }
 
-initApp();
+function deleteProject() {
+  if (!editingId||!confirm('Delete this project?')) return;
+  const p=projects.find(x=>x.id===editingId);
+  if (p) logChange(p.name, 'Deleted', '', '');
+  projects=projects.filter(p=>p.id!==editingId);
+  closeModal(); persist(); renderTable();
+}
 
+function archiveThis() {
+  if (!editingId||!confirm('Archive this project? It will be removed from the board and downloaded as a CSV row.')) return;
+  const p=projects.find(x=>x.id===editingId); if(!p) return;
+  const archiveDate=new Date().toLocaleDateString();
+  const newRow=[archiveDate,p.location,p.client,p.name,p.flightDate,p.dueDate,
+    ...SCOLS.flatMap(c=>{const e=getEntry(p,c);return[e.na?'N/A':e.v,e.na?'':e.i];}),
+    p.sent,p.billed||'',p.computer,p.notes
+  ].map(v=>`"${(v||'').replace(/"/g,'""')}"`).join(',');
+  let existing=[];
+  try{const r=localStorage.getItem('pt_archive');if(r)existing=JSON.parse(r);}catch(e){}
+  existing.push(newRow);
+  localStorage.setItem('pt_archive',JSON.stringify(existing));
+  const header=['Archive Date','Location','Client','Project Name','Flight Date','Due Date',
+    ...SLABELS.flatMap(l=>[l+' Status',l+' Initials']),
+    'Sent','Billed','Computer','Notes'].join(',');
+  const csvContent=[header,...existing].join('\n');
+  logChange(p.name, 'Archived', '', archiveDate);
+  projects=projects.filter(p=>p.id!==editingId);
+  closeModal(); persist(); renderTable();
+  downloadCSV(csvContent,'archive.csv');
+  showToast('Archived ✓');
+}
+
+// ============================================================
+// EXPORT
+// ============================================================
+function exportCSV() {
+  const h=['Location','Client','Project Name','Flight Date','Due Date',
+    ...SLABELS.flatMap(l=>[l+' Status',l+' Initials',l+' N/A']),
+    'Sent','Billed','Computer','Notes'];
+  const rows=projects.map(p=>[p.location,p.client,p.name,p.flightDate,formatDueDate(p),
+    ...SCOLS.flatMap(c=>{const e=getEntry(p,c);return[e.na?'N/A':e.v,e.na?'':e.i,e.na?'yes':'no'];}),
+    p.sent,p.billed||'',p.computer||'',p.notes
+  ].map(v=>`"${(v||'').replace(/"/g,'""')}"`).join(','));
+  downloadCSV([h.join(','),...rows].join('\n'),'projects.csv');
+}
+
+function downloadCSV(content, filename) {
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([content],{type:'text/csv'}));
+  a.download=filename; a.click();
+}
+
+// ============================================================
+// USER ROSTER
+// ============================================================
+function loadKnownUsers() {
+  try {
+    const stored = localStorage.getItem('wb_users_v1');
+    knownUsers = stored ? JSON.parse(stored) : [];
+  } catch(e) { knownUsers = []; }
+}
+
+function saveKnownUsers() {
+  localStorage.setItem('wb_users_v1', JSON.stringify(knownUsers));
+}
+
+function showUserLogin() {
+  const overlay = document.getElementById('user-login-overlay');
+  overlay.classList.remove('hidden');
+  renderUserList();
+}
+
+function hideUserLogin() {
+  document.getElementById('user-login-overlay').classList.add('hidden');
+}
+
+function renderUserList() {
+  const list = document.getElementById('user-list');
+  if (!knownUsers.length) {
+    list.innerHTML = '<div style="font-family:monospace;font-size:0.68rem;color:var(--text-muted);padding:8px 4px;">No users yet — add yourself below.</div>';
+    return;
+  }
+  list.innerHTML = knownUsers.map((u, i) =>
+    `<button class="user-btn" onclick="selectUser(${i})">
+      <span class="ubadge">${u.initials}</span>
+      <span>${u.name}</span>
+    </button>`
+  ).join('');
+}
+
+function selectUser(idx) {
+  const u = knownUsers[idx];
+  if (!u) return;
+  currentUser = u.name;
+  currentUserInitials = u.initials;
+  sessionStorage.setItem('wb_session_user', JSON.stringify(u));
+  updateAuthBanner();
+  hideUserLogin();
+}
+
+function addAndSelectUser() {
+  const name = document.getElementById('new-user-name').value.trim();
+  const initials = document.getElementById('new-user-initials').value.trim().toUpperCase();
+  if (!name) { document.getElementById('new-user-name').focus(); return; }
+  if (!initials) { document.getElementById('new-user-initials').focus(); return; }
+  // Check for duplicate initials
+  const dup = knownUsers.find(u => u.initials === initials);
+  if (dup) {
+    alert(`Initials "${initials}" are already taken by ${dup.name}. Please choose different initials.`);
+    document.getElementById('new-user-initials').focus();
+    return;
+  }
+  const u = { name, initials };
+  knownUsers.push(u);
+  saveKnownUsers();
+  document.getElementById('new-user-name').value = '';
+  document.getElementById('new-user-initials').value = '';
+  selectUser(knownUsers.length - 1);
+}
+
+function updateAuthBanner() {
+  document.getElementById('auth-state-text').innerHTML =
+    `<span class="user-name">${currentUser}</span>&nbsp;<span class="user-initials-badge">${currentUserInitials}</span>`;
+}
+
+// ============================================================
+// INIT
+// ============================================================
+loadKnownUsers();
+
+// Restore session user if they refreshed mid-session
+const _sess = sessionStorage.getItem('wb_session_user');
+if (_sess) {
+  try {
+    const u = JSON.parse(_sess);
+    currentUser = u.name;
+    currentUserInitials = u.initials;
+    updateAuthBanner();
+    document.getElementById('user-login-overlay').classList.add('hidden');
+  } catch(e) {}
+}
+
+load();
+startPolling();
 </script>
-
 </body>
 </html>
